@@ -18,16 +18,21 @@ describe('subject stickers', () => {
     expect(SUBJECT_STICKERS).toHaveLength(ALL_TOPICS.length);
   });
 
-  it('a finished set earns the topics answered correctly, never skipped ones or your own problems', () => {
-    const results = [
-      { topic: 'slope' as const },
-      { topic: 'trig' as const, skipped: true },
-      { topic: 'area' as const },
-      { topic: 'slope' as const },
+  it('only a perfect set earns stickers: all answered, first try, no answer shown', () => {
+    const perfect = [
+      { topic: 'slope' as const, attempts: 1 },
+      { topic: 'area' as const, attempts: 1 },
+      { topic: 'slope' as const, attempts: 1 },
     ];
-    expect(subjectStickersFor(results, false).sort()).toEqual(['area', 'slope']);
-    expect(subjectStickersFor(results, true)).toEqual([]);
-    expect(subjectStickersFor([{ points: 0 } as never], false)).toEqual([]);
+    expect(subjectStickersFor(perfect, false, 3)).toEqual(['slope', 'area']);
+    // Hints that don't give the answer away are fine.
+    expect(subjectStickersFor(perfect.map((r) => ({ ...r, revealed: false })), false, 3)).toEqual(['slope', 'area']);
+    // A wrong attempt, a shown answer, a skip, an unfinished set, or your own problems: nothing.
+    expect(subjectStickersFor([...perfect.slice(0, 2), { topic: 'slope' as const, attempts: 2 }], false, 3)).toEqual([]);
+    expect(subjectStickersFor([...perfect.slice(0, 2), { topic: 'slope' as const, attempts: 1, revealed: true }], false, 3)).toEqual([]);
+    expect(subjectStickersFor([...perfect.slice(0, 2), { topic: 'slope' as const, skipped: true }], false, 3)).toEqual([]);
+    expect(subjectStickersFor(perfect.slice(0, 2), false, 3)).toEqual([]);
+    expect(subjectStickersFor(perfect, true, 3)).toEqual([]);
   });
 
   it('earning is once only', () => {

@@ -198,7 +198,7 @@ STICKERS.push(
     kind: subjectStickerKind(s.topic),
     name: s.name,
     description: s.description,
-    earn: `Finish a practice set with ${s.name.toLowerCase()} problems in it.`,
+    earn: `Get every question right on the first try in a practice set with ${s.name.toLowerCase()} problems.`,
     subject: true,
     render: sticker(trim(iconRows(s.icon)), ICON_PALETTE),
   })),

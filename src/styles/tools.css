@@ -3812,3 +3812,24 @@ p.problem-error {
 .chal-stickers .muted {
   margin: 0;
 }
+
+.chal-reach {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+.chal-reach p {
+  margin: 0;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+.chal-reach-art {
+  display: flex;
+  gap: 2px;
+  flex: none;
+}

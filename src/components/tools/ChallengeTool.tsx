@@ -10,6 +10,8 @@ import {
   pointsFor,
   problemPrompt,
   subjectStickersFor,
+  errorFree,
+  setTopics,
   TOPIC_LABEL,
   type ChallengeCheck,
   type ChallengeMix,
@@ -36,6 +38,8 @@ interface Result {
   firstTry: boolean;
   skipped?: boolean;
   topic?: ChallengeProblem['topic'];
+  attempts?: number;
+  revealed?: boolean;
 }
 
 interface ChallengeData extends Record<string, unknown> {
@@ -108,7 +112,8 @@ export function ChallengeTool({ winId }: { winId: string }) {
   if (d.phase === 'summary') {
     const results = d.results ?? [];
     const earned = results.reduce((a, r) => a + r.points, 0);
-    const firstTry = results.filter((r) => r.firstTry).length;
+    // "On the first try" means what the sticker means: right first time, answer not shown (hints are fine).
+    const firstTry = results.filter((r) => (r.attempts != null ? errorFree(r) : r.firstTry)).length;
     return (
       <div className="chal chal-summary">
         <h3 className="chal-done-title">
@@ -133,6 +138,7 @@ export function ChallengeTool({ winId }: { winId: string }) {
             <p className="muted small">They’re in your backpack, under Stickers.</p>
           </div>
         )}
+        {!d.custom && !d.newStickers?.length && <StickersInReach results={results} />}
         <div className="chal-actions">
           <button type="button" className="btn btn-primary" onClick={() => (update({ newStickers: [] }), start(d.custom))}>
             <RotateCcw size={14} /> Another set
@@ -155,15 +161,15 @@ export function ChallengeTool({ winId }: { winId: string }) {
       problem={problem}
       index={index}
       total={problems.length}
-      onSolved={(pts, firstTry) => {
+      onSolved={(pts, firstTry, how) => {
         addTokens(pts);
         recordSolve();
-        update((cur) => ({ solved: true, results: [...(cur.results ?? []), { points: pts, firstTry, topic: problem.topic }] }));
+        update((cur) => ({ solved: true, results: [...(cur.results ?? []), { points: pts, firstTry, topic: problem.topic, ...how }] }));
       }}
       onNext={(skipped) => {
-        const results = skipped ? [...(d.results ?? []), { points: 0, firstTry: false, skipped: true }] : d.results ?? [];
+        const results = skipped ? [...(d.results ?? []), { points: 0, firstTry: false, skipped: true, topic: problem.topic }] : d.results ?? [];
         if (index + 1 >= problems.length) {
-          const fresh = earnStickers(subjectStickersFor(results, !!d.custom).map(subjectStickerKind));
+          const fresh = earnStickers(subjectStickersFor(results, !!d.custom, problems.length).map(subjectStickerKind));
           update({ phase: 'summary', results, newStickers: fresh });
           finishSet();
         } else {
@@ -294,7 +300,7 @@ function Play({
   problem: ChallengeProblem;
   index: number;
   total: number;
-  onSolved: (points: number, firstTry: boolean) => void;
+  onSolved: (points: number, firstTry: boolean, how: { attempts: number; revealed: boolean }) => void;
   onNext: (skipped: boolean) => void;
 }) {
   const fields = useMemo(() => challengeFields(problem), [problem]);
@@ -322,7 +328,7 @@ function Play({
       // Your own problems are for practice only, so they can't be farmed for tickets.
       const pts = revealed || d.custom ? 0 : pointsFor(hintsUsed, attempts);
       setGained(pts);
-      onSolved(pts, attempts === 1 && hintsUsed === 0);
+      onSolved(pts, attempts === 1 && hintsUsed === 0, { attempts, revealed });
     }
   };
 
@@ -501,4 +507,27 @@ function ChallengeFigure({ problem }: { problem: ChallengeProblem }) {
       {fig}
     </div>
   ) : null;
+}
+
+/** After an imperfect set: the subject stickers a perfect one would have earned, as a nudge. */
+function StickersInReach({ results }: { results: Result[] }) {
+  const earned = useWorkspace((s) => s.progress.stickersEarned);
+  const missing = setTopics(results).filter((t) => !earned.includes(subjectStickerKind(t)));
+  if (!missing.length || results.every(errorFree)) return null;
+  const names = missing.map((t) => STICKER_BY_KIND[subjectStickerKind(t)]?.name).filter(Boolean);
+  return (
+    <div className="chal-reach">
+      <span className="chal-reach-art" aria-hidden="true">
+        {missing.slice(0, 3).map((t) => (
+          <span key={t} className="sticker-locked">
+            {STICKER_BY_KIND[subjectStickerKind(t)]?.render(28)}
+          </span>
+        ))}
+      </span>
+      <p className="small">
+        Get every question right on the first try, with no skips and no shown answers, to earn the {names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0]} sticker
+        {names.length > 1 ? 's' : ''}.
+      </p>
+    </div>
+  );
 }

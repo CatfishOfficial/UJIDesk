@@ -204,14 +204,29 @@ export function challengeHints(p: ChallengeProblem): string[] {
   ];
 }
 
+export interface SetResult {
+  topic?: ChallengeTopic;
+  skipped?: boolean;
+  /** Checks it took to get it right (1 = first try). */
+  attempts?: number;
+  /** The last hint gave the answer away. */
+  revealed?: boolean;
+}
+
+/** Right on the first try, without the answer being shown. Hints along the way are fine. */
+export const errorFree = (r: SetResult) => !r.skipped && r.attempts === 1 && !r.revealed;
+
+/** The topics in a set, in order of first appearance. */
+export const setTopics = (results: SetResult[]) => [...new Set(results.map((r) => r.topic).filter(Boolean))] as ChallengeTopic[];
+
 /**
- * Finishing a practice set earns the sticker for every topic answered
- * correctly at least once in it. Your own problems don't count (like tokens),
- * so stickers come from generated practice.
+ * A perfect set (every question answered, each right on the first try, no
+ * answers revealed) earns the sticker for every topic in it. Your own problems
+ * don't count (like tokens), so stickers come from generated practice.
  */
-export function subjectStickersFor(results: { topic?: ChallengeTopic; skipped?: boolean }[], custom: boolean): ChallengeTopic[] {
-  if (custom) return [];
-  return [...new Set(results.filter((r) => r.topic && !r.skipped).map((r) => r.topic!))];
+export function subjectStickersFor(results: SetResult[], custom: boolean, total: number): ChallengeTopic[] {
+  if (custom || results.length < total || !results.every((r) => r.topic && errorFree(r))) return [];
+  return setTopics(results);
 }
 
 export function pointsFor(hintsUsed: number, attempts: number): number {
