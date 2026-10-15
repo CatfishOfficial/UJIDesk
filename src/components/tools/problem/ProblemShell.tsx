@@ -350,12 +350,25 @@ export function ProblemShell({ winId, type, solve, renderInputs, emptyInputs, ex
           kind={recognition}
           initialImage={importing.image}
           onClose={() => setImporting(null)}
-          onUse={(text) => {
-            const parsed = fromRecognized(text);
+          onUse={(result) => {
             setImporting(null);
+            // A confident structured guess for a *different* tool opens that tool instead of
+            // force-fitting it into this one; for this tool, its fields are more reliable than
+            // re-parsing the text through fromRecognized.
+            if (result.structured) {
+              if (result.structured.type === type) {
+                const next = { ...emptyInputs, ...result.structured.inputs };
+                setInputs(next);
+                submit(next);
+              } else {
+                useWorkspace.getState().openWindow(result.structured.type, { data: { inputs: result.structured.inputs, autoSolve: true } });
+              }
+              return;
+            }
+            const parsed = fromRecognized(result.text);
             if (parsed) submit(parsed);
             else {
-              setInputs({ ...emptyInputs, ...(recognition === 'equation' ? { eq: text } : {}) });
+              setInputs({ ...emptyInputs, ...(recognition === 'equation' ? { eq: result.text } : {}) });
               setError({ text: "Couldn't turn that into a problem. Check the inputs above." });
             }
           }}

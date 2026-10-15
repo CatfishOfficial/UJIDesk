@@ -178,11 +178,15 @@ export function BackpackOverlay({ compact }: { compact: boolean }) {
           <RecognitionDialog
             kind="any"
             onClose={() => setImporting(false)}
-            onUse={(text) => {
-              const d = detectProblem(text);
+            onUse={(result) => {
               setImporting(false);
-              // Unclear input goes to the equation tool, whose error explains what to fix.
-              openWindow(d?.type ?? 'standardToSlope', { data: { inputs: d?.inputs ?? { eq: text }, autoSolve: true } });
+              if (result.structured) {
+                openWindow(result.structured.type, { data: { inputs: result.structured.inputs, autoSolve: true } });
+              } else {
+                const d = detectProblem(result.text);
+                // Unclear input goes to the equation tool, whose error explains what to fix.
+                openWindow(d?.type ?? 'standardToSlope', { data: { inputs: d?.inputs ?? { eq: result.text }, autoSolve: true } });
+              }
               setBackpack(false);
             }}
           />

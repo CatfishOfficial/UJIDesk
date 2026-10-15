@@ -13,7 +13,7 @@ npm test           # engine tests (Vitest): math, science, calculators, desks, d
 npm run build      # type-check + production build into dist/
 ```
 
-No server, accounts, or API keys. The live board is saved to `localStorage` under `uji.workspace`, saved desks under `uji.desks`.
+No accounts: the live board is saved to `localStorage` under `uji.workspace`, saved desks under `uji.desks`. The one server-side piece is `api/recognize.ts` (a Vercel serverless function) for reading photos of problems — it needs `OPENAI_API_KEY` set on the host; without it, everything still works except that one reader, which just fails over to typing the problem in by hand. `npm run dev` alone won't exercise it (no function runtime) — use `vercel dev`, or test against a deployed preview.
 
 Shortcuts: **Ctrl/⌘ K** opens Math tools search in the backpack · **Ctrl/⌘ B** toggles the backpack · **Esc** closes the backpack or leaves Draw mode · window title bars take **arrow keys** to move and **Shift+arrows** to resize · with the backpack button focused, **arrow keys** hop it between corners.
 
@@ -27,6 +27,7 @@ Shortcuts: **Ctrl/⌘ K** opens Math tools search in the backpack · **Ctrl/⌘ 
 | Close vs. clear: closing a window is quiet (no pop-up); one with content is kept under "On your desk → closed" in the bag to reopen. Clearing a page is a separate action with its own undo. Messages (toasts) follow light/dark | Working |
 | Backpack = the whole menu. A top icon bar switches between the bag itself, Math tools, Desks, My stuff, Settings and the Arcade, and launches Challenge and Trip on da Ship, with the pen on the right. The bag opens toward the screen centre from wherever the button is. **A "type a problem" field** detects the tool ("x² − 5x + 6 = 0", "2x + 3y = 12, x − y = 1", "mean of 3, 7, 9", "legs 5 and 12", "angle 35°, hypotenuse 10", "3, 7, 11, …"), or you pick one. Click-to-place **and drag-to-place**, Cheat ↔ Lesson switch (no Challenge), tucked-away and recently closed windows, never consumed | Working |
 | First visit opens the backpack once; after that every session starts on a blank board | Working |
+| **Bring in a problem from a photo**: camera capture, file upload, clipboard paste (button or Ctrl+V anywhere in a problem tool), or type/paste text. A reader (OpenAI, via the `api/recognize` serverless function — never the browser directly, so the API key stays off the client) transcribes the problem as plain text and flags any characters it's unsure about; the student always sees the reading and can fix it before anything is solved. When it's confident which tool and exact field values match, it also offers to open that tool prefilled — re-checked against the real tool registry before it's trusted with anything, and always optional: "Let me check the text instead" falls back to the plain-text reading, which still goes through the same deterministic `detect.ts` router every typed problem does. The AI only ever reads; it never solves anything itself. Requires `OPENAI_API_KEY` set on the host (see `api/recognize.ts`) | Working |
 | **Standard → slope-intercept**: any linear equation (`2y = 4x + 6`, `½x + y = 3`, `3(x − 2) + y = 0`), exact fractions, vertical/horizontal/degenerate cases, steps, copy answer/work, graph it | Working |
 | **Slope from two points**: fractions/decimals/negatives, vertical (undefined) and horizontal lines, same-point error, bonus line equation, graph with points | Working |
 | **Point-slope form**: from a point and a slope (or "undefined") or from two points; tidy signs (y + 4 = −⅔(x + 1)), plus slope-intercept and standard form, graph with the points | Working |
@@ -63,7 +64,6 @@ Shortcuts: **Ctrl/⌘ K** opens Math tools search in the backpack · **Ctrl/⌘ 
 
 ## What is mocked (and says so in the UI)
 
-- **Photo / screenshot recognition.** Camera capture (`getUserMedia`, only on a button press), file upload, clipboard paste (button or Ctrl+V anywhere in a problem tool) and text paste all work. The image then goes to a **review step** where the student types or corrects the problem before anything is solved. No recognizer is connected. "Try a demo reading" fills in a clearly labelled sample with a circled, uncertain character to show the intended review UX. The plug-in point is `RecognitionDialog`: replace the demo with a real `recognize(image) → { text, uncertainSpans }`.
 - **Fish roster.** Five joke fish plus six clearly named placeholders (`placeholder: true` in `data/fish.tsx`) waiting for the real roster. The bowl starts empty; fish come from da Ship.
 - **Arcade:** Trip on da Ship is playable; Lucky River Casino, Ikae and Room decor are placeholder cards. The casino copy states there is no cash value and nothing for sale.
 - **Tokens for testing:** in dev builds, Settings has a "Give 100 tokens" button.
@@ -81,6 +81,10 @@ Accounts and sync (desks already go through a storage adapter, see below), multi
 ## Component map
 
 ```
+api/
+  recognize.ts             Serverless function (Vercel): the only thing holding the OpenAI
+                           key. Reads a photo, transcribes it, optionally names a tool/fields
+                           — re-checked against the real registry before being trusted
 src/
   math/                    Pure TypeScript, no React. All deterministic, all tested.
     rational.ts            Exact bigint fractions; parses ints, decimals, fractions
@@ -114,6 +118,8 @@ src/
     types.ts
   data/
     tools.ts               Window type registry: sizes, chrome, initial data, hasContent
+    recognitionSchema.ts   Which tools/fields the photo reader may name (shared with api/
+                           recognize.ts — pure data, no React, generated from TOOLS)
     catalog.tsx            Backpack contents, math catalog, calculator models
     stickers.tsx, fish.tsx, pixel.tsx   Pixel-art sprites (swap per sprite, keep grid size)
     decor.tsx              Bowl decor (fish unlocks and rare drops) and fish foods
@@ -167,7 +173,7 @@ src/
 - **Lesson key guides:** give a lesson decision a `calc` expression (`"(−5)² − 4 × 1 × 6"`, `"10 × sin(35)"`; `calcNum` formats exact numbers). The calculator does the rest for whichever model is selected.
 - **Practice topics:** add a `TopicDef` to `math/challengeTopics.ts` (generate, prompt, fields, check, hints, answers). Storing problems as the tool's own inputs means typed "bring your own" problems work for free, and the test suite checks every generated problem against its own answers.
 - **Art:** every icon is one draw function in `PixelIcon.tsx`, and every sprite is a string-row grid with a palette. Either can be replaced one at a time. A new fish only needs a palette and, optionally, an accessory patch.
-- **Recognition:** see the mocked section above.
+- **Recognition:** the reader lives in `api/recognize.ts`; the tools and fields it may suggest are generated from `data/recognitionSchema.ts`, which reads straight from the `TOOLS` registry — a new problem tool becomes recognizable automatically once it's registered there.
 - **New fish:** add an entry to `FISH` in `data/fish.tsx` with a rarity, a time (`day`/`night`/`any`), a palette, and optionally an accessory patch and `unlocks`. It appears in the trip pool, catch log and bowl automatically. Prices, casts and odds live at the top of `game/ship.ts`.
 - **New item:** register a type in `data/tools.ts` with `chrome: 'bare'` and an `aspect`, render it as pixel art, add a right-click `ContextMenu` ending in `<ItemMenuFooter/>`, and add it to the *Items* section in `data/catalog.tsx`.
 - **Persistence and sync:** `useWorkspace` uses zustand's `persist` for the live board. Saved desks go through `DeskStorage` in `state/desks.ts` (`read()` / `write()`); call `setDeskStorage()` with a remote adapter to sync desks once accounts exist.
