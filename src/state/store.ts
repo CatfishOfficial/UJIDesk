@@ -105,7 +105,7 @@ const initialProgress: Progress = {
   trips: 0,
 };
 
-const initialSettings: Settings = { theme: 'light', grid: true, motion: 'system', backpackPos: { edge: 'bottom', t: 0 }, arrange: DEFAULT_ARRANGE };
+const initialSettings: Settings = { theme: 'light', grid: true, motion: 'system', backpackPos: { edge: 'bottom', t: 0 }, arrange: DEFAULT_ARRANGE, uiScale: 1 };
 
 const isTaskOpen = (windows: Record<string, Win>) => Object.values(windows).some((w) => TOOLS[w.type].isTask);
 

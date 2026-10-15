@@ -11,6 +11,13 @@ body,
   margin: 0;
 }
 
+/* Scales the whole page like browser zoom would: window.innerWidth, clientX/Y
+   and getBoundingClientRect() all stay self-consistent, so drag, resize, snap
+   and viewport-clamping math needs no changes at any --ui-scale value. */
+html {
+  zoom: var(--ui-scale, 1);
+}
+
 body {
   background: var(--board);
   color: var(--ink);

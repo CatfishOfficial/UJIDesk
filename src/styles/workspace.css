@@ -1850,3 +1850,20 @@ button.arcade-card.is-ready:hover {
 .arrange-hint {
   margin: 2px 0 2px;
 }
+
+.scale-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  align-self: stretch;
+}
+.scale-row input[type='range'] {
+  flex: 1;
+  accent-color: var(--accent);
+}
+.scale-readout {
+  min-width: 44px;
+  text-align: right;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}

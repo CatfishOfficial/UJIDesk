@@ -371,6 +371,9 @@ export function SettingsView() {
         <span>Reduce motion (also follows your system setting)</span>
       </label>
 
+      <div className="inv-group-name">Display size</div>
+      <ScaleSlider />
+
       <div className="inv-group-name">Workspace</div>
       <WindowArrangement />
 
@@ -483,6 +486,49 @@ export function StickersView({ compact }: { compact: boolean }) {
         }
       />
     </div>
+  );
+}
+
+/**
+ * Settings → Display size. A manual override to test how big windows, text and
+ * menus should look on this screen — report back the number and the screen size
+ * so it can become the automatic default for screens like this one.
+ */
+function ScaleSlider() {
+  const scale = useWorkspace((s) => s.settings.uiScale) ?? 1;
+  const setSettings = useWorkspace((s) => s.setSettings);
+  const [screen, setScreen] = useState({ w: window.screen.width, h: window.screen.height });
+  useEffect(() => {
+    const on = () => setScreen({ w: window.screen.width, h: window.screen.height });
+    window.addEventListener('resize', on);
+    return () => window.removeEventListener('resize', on);
+  }, []);
+  return (
+    <section className="arrange" aria-labelledby="scale-title">
+      <div className="arrange-title" id="scale-title">
+        Display size <span className="muted small">(testing)</span>
+      </div>
+      <p className="muted small">Drag until windows, text and menus look the right size on this screen.</p>
+      <div className="scale-row">
+        <input
+          type="range"
+          min={0.5}
+          max={1.5}
+          step={0.01}
+          value={scale}
+          onChange={(e) => setSettings({ uiScale: Number(e.target.value) })}
+          aria-label="Display size"
+          aria-valuetext={`${Math.round(scale * 100)} percent`}
+        />
+        <span className="scale-readout">{Math.round(scale * 100)}%</span>
+      </div>
+      <p className="muted small">
+        Screen resolution: {screen.w} × {screen.h}px. Worth noting down alongside the percentage above.
+      </p>
+      <button type="button" className="btn btn-sm" onClick={() => setSettings({ uiScale: 1 })} disabled={scale === 1}>
+        <RotateCcw size={13} /> Reset to 100%
+      </button>
+    </section>
   );
 }
 

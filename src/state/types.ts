@@ -112,4 +112,6 @@ export interface Settings {
   backpackPos?: EdgePosition;
   /** Window arrangement: grid snapping, window snapping, alignment guides. All off by default. */
   arrange: ArrangeSettings;
+  /** Overall UI scale (1 = 100%). Settings → Display size; a manual stand-in until it's auto-set from screen size. */
+  uiScale: number;
 }

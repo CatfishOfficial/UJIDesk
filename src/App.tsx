@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useWorkspace } from './state/store';
 import { useUI } from './state/ui';
 import { useApplyTheme } from './state/theme';
+import { useApplyUIScale } from './state/uiScale';
 import { WindowLayer } from './components/windows/WindowLayer';
 import { BackpackButton } from './components/backpack/BackpackButton';
 import { BackpackOverlay } from './components/backpack/BackpackOverlay';
@@ -36,6 +37,7 @@ export default function App() {
   const arrange = useWorkspace((s) => s.settings.arrange ?? DEFAULT_ARRANGE);
   const [boardMenu, setBoardMenu] = useState<{ x: number; y: number } | null>(null);
   useApplyTheme();
+  useApplyUIScale();
 
   // Very first visit: open the backpack once so the way in is obvious.
   // After that the board starts empty, with the backpack as the way in.
