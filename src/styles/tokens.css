@@ -1,6 +1,6 @@
 :root {
-  /* Overall UI scale: multiplies every size (fonts, windows, menus) via `zoom`
-     on <html> in global.css. Settings → Display size writes this. */
+  /* Overall UI scale: multiplies every size (fonts, windows, menus) via a
+     transform on .stage in workspace.css. Settings → Display size writes this. */
   --ui-scale: 1;
 
   /* Surfaces: a warm whiteboard, crisp white windows */

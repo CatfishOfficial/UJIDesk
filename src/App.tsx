@@ -90,31 +90,38 @@ export default function App() {
       className={`workspace ${grid ? 'has-grid' : ''} ${arrange.grid ? 'snap-grid' : ''} ${drawMode ? 'is-drawing' : ''} ${compact ? 'is-compact' : ''} ${arranging ? 'is-arranging' : ''}`}
       style={{ '--snap': `${arrange.gridSize}px` } as CSSProperties}
     >
-      <h1 className="sr-only">UJI workspace</h1>
-      <div
-        className="board"
-        onPointerDown={() => {
-          useUI.getState().selectSticker(null);
-          useUI.getState().setFocused(null);
-        }}
-        onContextMenu={(e) => {
-          // Phones show one window at a time, so there's nothing to arrange there.
-          if (compact) return;
-          e.preventDefault();
-          setBoardMenu({ x: e.clientX, y: e.clientY });
-        }}
-      />
-      <InkLayer />
-      <StickerLayer />
-      <main className="desk" aria-label="Whiteboard">
-        <WindowLayer compact={compact} />
-        <GuideLayer />
-      </main>
-      {boardMenu && <BoardMenu x={boardMenu.x} y={boardMenu.y} onClose={() => setBoardMenu(null)} />}
-      <DrawingSurface />
-      <BackpackButton />
-      <BackpackOverlay compact={compact} />
-      <Toasts />
+      {/* Everything below scales together via --ui-scale: a transform (GPU-composited,
+          doesn't force layout) rather than `zoom` (a layout property — forces the
+          whole page through layout/paint every frame, which read as "dead" transitions
+          on a big screen with more pixels to redo that work for). ContextMenu's portal
+          and InventoryGrid's drag ghost target this element by class so they scale too. */}
+      <div className="stage">
+        <h1 className="sr-only">UJI workspace</h1>
+        <div
+          className="board"
+          onPointerDown={() => {
+            useUI.getState().selectSticker(null);
+            useUI.getState().setFocused(null);
+          }}
+          onContextMenu={(e) => {
+            // Phones show one window at a time, so there's nothing to arrange there.
+            if (compact) return;
+            e.preventDefault();
+            setBoardMenu({ x: e.clientX, y: e.clientY });
+          }}
+        />
+        <InkLayer />
+        <StickerLayer />
+        <main className="desk" aria-label="Whiteboard">
+          <WindowLayer compact={compact} />
+          <GuideLayer />
+        </main>
+        {boardMenu && <BoardMenu x={boardMenu.x} y={boardMenu.y} onClose={() => setBoardMenu(null)} />}
+        <DrawingSurface />
+        <BackpackButton />
+        <BackpackOverlay compact={compact} />
+        <Toasts />
+      </div>
     </div>
   );
 }

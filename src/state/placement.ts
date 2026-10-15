@@ -12,10 +12,13 @@ export interface Rect {
   h: number;
 }
 
-/** The viewport in logical pixels — real pixels divided by the Display size scale (see ./scale). */
-export function viewport(): { vw: number; vh: number } {
+/**
+ * The viewport in logical pixels — real pixels divided by the Display size
+ * scale (see ./scale). Pass `scale` when the caller already has it (e.g. mid
+ * pointer-drag), so this doesn't re-read the --ui-scale custom property.
+ */
+export function viewport(scale = currentScale()): { vw: number; vh: number } {
   if (typeof window === 'undefined') return { vw: 1280, vh: 800 };
-  const scale = currentScale();
   return { vw: window.innerWidth / scale, vh: window.innerHeight / scale };
 }
 

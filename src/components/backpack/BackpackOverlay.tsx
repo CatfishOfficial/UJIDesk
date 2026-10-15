@@ -6,16 +6,14 @@ import { PixelIcon, type PixelIconName } from '../ui/pixel-icons/PixelIcon';
 import { RecognitionDialog } from '../tools/problem/RecognitionDialog';
 import { detectProblem } from '../../math/detect';
 import { BUTTON, DEFAULT_POS, buttonXY } from './geometry';
-import { currentScale } from '../../state/scale';
 import type { EdgePosition } from '../../state/types';
 import { ArcadeView, CatalogView, HomeView, SettingsView, StickersView, StuffView } from './views';
 import { DesksView } from './DesksView';
 
 /** Opens toward the middle of the screen from wherever the button sits. */
-function panelStyle(pos: EdgePosition, panelH: number): CSSProperties {
-  const scale = currentScale();
-  const vw = window.innerWidth / scale;
-  const vh = window.innerHeight / scale;
+function panelStyle(pos: EdgePosition, panelH: number, uiScale: number): CSSProperties {
+  const vw = window.innerWidth / uiScale;
+  const vh = window.innerHeight / uiScale;
   const { x, y } = buttonXY(pos, vw, vh);
   const gap = 10;
   const s: CSSProperties = {};
@@ -68,11 +66,15 @@ export function BackpackOverlay({ compact }: { compact: boolean }) {
   const setNudge = useWorkspace((s) => s.setNudge);
   const tokens = useWorkspace((s) => s.progress.tokens);
   const pos = useWorkspace((s) => s.settings.backpackPos) ?? DEFAULT_POS;
+  // Subscribed (not just read via currentScale()) so the panel re-renders at its
+  // new position/size the moment the Display size slider moves.
+  const uiScale = useWorkspace((s) => s.settings.uiScale) ?? 1;
   const [importing, setImporting] = useState(false);
   const [nudged, setNudged] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const [panelH, setPanelH] = useState(0);
   const returnFocus = useRef<HTMLElement | null>(null);
+  const [, bumpViewport] = useState(0);
 
   useLayoutEffect(() => {
     const h = panelRef.current?.offsetHeight ?? 0;
@@ -89,6 +91,13 @@ export function BackpackOverlay({ compact }: { compact: boolean }) {
       setImporting(false);
       if (returnFocus.current?.isConnected && panelRef.current?.contains(document.activeElement)) returnFocus.current.focus();
     }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const on = () => bumpViewport((n) => n + 1);
+    window.addEventListener('resize', on);
+    return () => window.removeEventListener('resize', on);
   }, [open]);
 
   useEffect(() => {
@@ -119,7 +128,7 @@ export function BackpackOverlay({ compact }: { compact: boolean }) {
       <div
         ref={panelRef}
         className="backpack-panel"
-        style={compact ? undefined : panelStyle(pos, panelH)}
+        style={compact ? undefined : panelStyle(pos, panelH, uiScale)}
         role="dialog"
         aria-label="Backpack"
         onKeyDown={(e) => {

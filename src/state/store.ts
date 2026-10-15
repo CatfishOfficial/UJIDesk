@@ -142,6 +142,8 @@ export const useWorkspace = create<WorkspaceState>()(
       openWindow: (type, opts = {}) => {
         const meta = TOOLS[type];
         const state = get();
+        // opts.at arrives as a real pointer-drop point; findPlacement works in logical pixels.
+        const at = opts.at ? { x: opts.at.x / currentScale(), y: opts.at.y / currentScale() } : undefined;
         if (meta.singleton) {
           const existing = Object.values(state.windows).find((w) => w.type === type);
           if (existing) {
@@ -165,7 +167,7 @@ export const useWorkspace = create<WorkspaceState>()(
             const others = Object.values(state.windows).filter((w) => w.id !== tucked.id);
             const near = opts.near ? state.windows[opts.near] : undefined;
             // Dropped somewhere on purpose: it goes there. Otherwise it returns to its old spot.
-            const spot = opts.at ? findPlacement({ w: tucked.w, h: tucked.h }, others, near, opts.at) : { x: tucked.x, y: tucked.y };
+            const spot = at ? findPlacement({ w: tucked.w, h: tucked.h }, others, near, at) : { x: tucked.x, y: tucked.y };
             set((s) => ({
               zTop: s.zTop + 1,
               windows: { ...s.windows, [tucked.id]: { ...tucked, ...clampToViewport({ ...tucked, ...spot }), minimized: false, z: s.zTop + 1 } },
@@ -179,7 +181,7 @@ export const useWorkspace = create<WorkspaceState>()(
         const size = fitSize(want.w, want.h);
         const others = Object.values(state.windows);
         const near = opts.near ? state.windows[opts.near] : undefined;
-        const rect = findPlacement(size, others, near, opts.at);
+        const rect = findPlacement(size, others, near, at);
         const win: Win = {
           id,
           type,
@@ -374,10 +376,11 @@ export const useWorkspace = create<WorkspaceState>()(
           set((s) => ({ stickers: [...s.stickers, st] }));
           return id;
         }
-        const { vw, vh } = viewport();
+        const scale = currentScale();
+        const { vw, vh } = viewport(scale);
         // `at` (a drop point) arrives as real pointer coordinates; everything
-        // else here is logical, since stickers render through the page zoom.
-        const prefer = at ? { x: at.x / currentScale(), y: at.y / currentScale() } : { x: vw * (0.55 + Math.random() * 0.3), y: vh * (0.15 + Math.random() * 0.5) };
+        // else here is logical, since stickers render through the scaled stage.
+        const prefer = at ? { x: at.x / scale, y: at.y / scale } : { x: vw * (0.55 + Math.random() * 0.3), y: vh * (0.15 + Math.random() * 0.5) };
         // Stickers sit beneath windows, so never place one where something covers it.
         const s0 = get();
         const blockers = Object.values(s0.windows)

@@ -497,12 +497,9 @@ export function StickersView({ compact }: { compact: boolean }) {
 function ScaleSlider() {
   const scale = useWorkspace((s) => s.settings.uiScale) ?? 1;
   const setSettings = useWorkspace((s) => s.setSettings);
-  const [screen, setScreen] = useState({ w: window.screen.width, h: window.screen.height });
-  useEffect(() => {
-    const on = () => setScreen({ w: window.screen.width, h: window.screen.height });
-    window.addEventListener('resize', on);
-    return () => window.removeEventListener('resize', on);
-  }, []);
+  // The physical screen, not the browser window — it won't change while this
+  // is open, so there's no listener to keep it fresh.
+  const [screen] = useState({ w: window.screen.width, h: window.screen.height });
   return (
     <section className="arrange" aria-labelledby="scale-title">
       <div className="arrange-title" id="scale-title">

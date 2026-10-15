@@ -197,11 +197,13 @@ function InventorySlot({
       const ghost = document.createElement('div');
       ghost.className = 'inv-ghost';
       ghost.innerHTML = e.currentTarget.querySelector('.inv-icon')?.innerHTML ?? '';
-      document.body.appendChild(ghost);
+      // Into .stage, not document.body: it needs to scale and track the cursor
+      // the same way everything else inside the scaled stage does.
+      (document.querySelector('.stage') ?? document.body).appendChild(ghost);
       d.ghost = ghost;
       document.body.classList.add('is-placing');
     }
-    // The ghost renders through the page zoom, so its translate needs logical px to track the real cursor.
+    // The ghost renders through the stage's scale, so its translate needs logical px to track the real cursor.
     if (d.ghost) {
       const scale = currentScale();
       d.ghost.style.transform = `translate(${(e.clientX - 22) / scale}px, ${(e.clientY - 22) / scale}px)`;

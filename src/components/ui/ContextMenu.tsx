@@ -90,7 +90,10 @@ export function ContextMenu({ x, y, label, onClose, children }: { x: number; y: 
     >
       {children}
     </div>,
-    document.body,
+    // Into .stage, not document.body: it needs to scale with everything else,
+    // and its x/y (and offsetWidth/Height in the effect above) are logical,
+    // meaning they only render correctly inside the scaled stage.
+    document.querySelector('.stage') ?? document.body,
   );
 }
 

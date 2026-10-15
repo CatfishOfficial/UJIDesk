@@ -7,6 +7,21 @@
   background: var(--board);
 }
 
+/*
+ * Settings → Display size scales everything inside here by --ui-scale via a
+ * composited transform (not `zoom`, which forces the whole subtree through
+ * layout/paint every frame — fine on a small screen, but it's what made
+ * transitions and animations stutter or stop on a bigger one). Sized to the
+ * inverse of the scale first so the transform lands back on exactly the real
+ * viewport .workspace already clips to.
+ */
+.stage {
+  width: calc(100% / var(--ui-scale, 1));
+  height: calc(100% / var(--ui-scale, 1));
+  transform: scale(var(--ui-scale, 1));
+  transform-origin: top left;
+}
+
 .board {
   position: absolute;
   inset: 0;

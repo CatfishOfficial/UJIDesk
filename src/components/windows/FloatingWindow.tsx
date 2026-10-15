@@ -67,7 +67,7 @@ export function FloatingWindow({ win, title, headerExtra, children, bodyClassNam
     const scale = currentScale();
     const dx = (e.clientX - g.px) / scale;
     const dy = (e.clientY - g.py) / scale;
-    const { vw, vh } = viewport();
+    const { vw, vh } = viewport(scale);
     let { x, y, w, h } = g;
     // Snapping (if switched on in Settings). Holding Alt places the window freely.
     const arrange = useWorkspace.getState().settings.arrange;

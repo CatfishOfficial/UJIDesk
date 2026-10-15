@@ -68,7 +68,7 @@ export function BareObject({ win, label, children }: { win: Win; label: string; 
     // Snapping (if switched on in Settings). Holding Alt places it freely.
     const arrange = useWorkspace.getState().settings.arrange;
     const snapping = !!arrange && snapActive(arrange) && !e.altKey;
-    const { vw, vh } = viewport();
+    const { vw, vh } = viewport(scale);
     const view = { w: vw, h: vh };
     if (d.kind === 'move') {
       let x = d.x + dx;
