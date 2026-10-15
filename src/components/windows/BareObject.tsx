@@ -1,6 +1,7 @@
 import { useRef, useState, type ReactNode } from 'react';
 import type { Win } from '../../state/types';
-import { useWorkspace } from '../../state/store';
+import { deskBoxes, useWorkspace } from '../../state/store';
+import { snapActive, snapMove, snapResize, type Box } from '../../state/snap';
 import { useUI } from '../../state/ui';
 import { TOOLS } from '../../data/tools';
 import { AttachedStickers } from '../StickerLayer';
@@ -17,7 +18,7 @@ export function BareObject({ win, label, children }: { win: Win; label: string; 
   const meta = TOOLS[win.type];
   const aspect = meta.aspect ?? win.w / win.h;
   const ref = useRef<HTMLElement>(null);
-  const g = useRef<{ kind: 'move' | 'resize'; px: number; py: number; x: number; y: number; w: number; id: number; live: boolean; next?: { x: number; y: number; w: number } } | null>(null);
+  const g = useRef<{ kind: 'move' | 'resize'; px: number; py: number; x: number; y: number; w: number; id: number; live: boolean; next?: { x: number; y: number; w: number }; others: Box[] } | null>(null);
   const [active, setActive] = useState<null | 'move' | 'resize'>(null);
   const focusWindow = useWorkspace((s) => s.focusWindow);
   const setRect = useWorkspace((s) => s.setRect);
@@ -38,7 +39,7 @@ export function BareObject({ win, label, children }: { win: Win; label: string; 
 
   const start = (e: React.PointerEvent<HTMLElement>, kind: 'move' | 'resize') => {
     if (e.button !== 0) return;
-    g.current = { kind, px: e.clientX, py: e.clientY, x: win.x, y: win.y, w: win.w, id: e.pointerId, live: kind === 'resize' };
+    g.current = { kind, px: e.clientX, py: e.clientY, x: win.x, y: win.y, w: win.w, id: e.pointerId, live: kind === 'resize', others: deskBoxes(win.id) };
     if (kind === 'resize') {
       e.stopPropagation();
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -57,14 +58,32 @@ export function BareObject({ win, label, children }: { win: Win; label: string; 
       ref.current?.setPointerCapture(e.pointerId);
       setActive('move');
     }
+    // Snapping (if switched on in Settings). Holding Alt places it freely.
+    const arrange = useWorkspace.getState().settings.arrange;
+    const snapping = !!arrange && snapActive(arrange) && !e.altKey;
+    const view = { w: window.innerWidth, h: window.innerHeight };
     if (d.kind === 'move') {
+      let x = d.x + dx;
+      let y = d.y + dy;
+      if (snapping) {
+        const r = snapMove({ x, y, w: d.w, h: Math.round(d.w / aspect) }, d.others, arrange, view);
+        ({ x, y } = r.box);
+        useUI.getState().setGuides(r.guides);
+      } else useUI.getState().setGuides([]);
       d.next = {
-        x: Math.round(Math.min(Math.max(d.x + dx, -d.w + 60), window.innerWidth - 60)),
-        y: Math.round(Math.min(Math.max(d.y + dy, 0), window.innerHeight - 40)),
+        x: Math.round(Math.min(Math.max(x, -d.w + 60), window.innerWidth - 60)),
+        y: Math.round(Math.min(Math.max(y, 0), window.innerHeight - 40)),
         w: d.w,
       };
     } else {
-      d.next = { x: d.x, y: d.y, w: Math.round(Math.min(900, Math.max(meta.min.w, d.w + Math.max(dx, dy * aspect)))) };
+      let w = Math.round(Math.min(900, Math.max(meta.min.w, d.w + Math.max(dx, dy * aspect))));
+      // Items keep their proportions, so only the right edge snaps.
+      if (snapping) {
+        const r = snapResize({ x: d.x, y: d.y, w, h: Math.round(w / aspect) }, 'e', d.others, arrange, view, { w: meta.min.w, h: 0 });
+        w = r.box.w;
+        useUI.getState().setGuides(r.guides);
+      } else useUI.getState().setGuides([]);
+      d.next = { x: d.x, y: d.y, w };
     }
     apply(d.next);
   };
@@ -73,6 +92,7 @@ export function BareObject({ win, label, children }: { win: Win; label: string; 
     const d = g.current;
     g.current = null;
     setActive(null);
+    useUI.getState().setGuides([]);
     if (d?.live && d.next) setRect(win.id, { x: d.next.x, y: d.next.y, w: d.next.w, h: Math.round(d.next.w / aspect) });
   };
 

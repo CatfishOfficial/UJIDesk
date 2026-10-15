@@ -1,3 +1,5 @@
+import type { ArrangeSettings } from './snap';
+
 export type WindowType =
   | 'standardToSlope'
   | 'slopeFromPoints'
@@ -108,4 +110,6 @@ export interface Settings {
   grid: boolean;
   motion: 'system' | 'reduced';
   backpackPos?: EdgePosition;
+  /** Window arrangement: grid snapping, window snapping, alignment guides. All off by default. */
+  arrange: ArrangeSettings;
 }

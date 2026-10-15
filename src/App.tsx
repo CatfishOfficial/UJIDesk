@@ -8,6 +8,10 @@ import { BackpackOverlay } from './components/backpack/BackpackOverlay';
 import { Toasts } from './components/Toasts';
 import { StickerLayer } from './components/StickerLayer';
 import { InkLayer, DrawingSurface } from './components/drawing/DrawingLayer';
+import { GuideLayer } from './components/windows/GuideLayer';
+import { BoardMenu } from './components/BoardMenu';
+import { DEFAULT_ARRANGE } from './state/snap';
+import type { CSSProperties } from 'react';
 
 function useCompact() {
   const query = '(max-width: 720px), (max-height: 520px)';
@@ -28,6 +32,9 @@ export default function App() {
   const grid = useWorkspace((s) => s.settings.grid);
   const motion = useWorkspace((s) => s.settings.motion);
   const drawMode = useUI((s) => s.drawMode);
+  const arranging = useUI((s) => s.arranging);
+  const arrange = useWorkspace((s) => s.settings.arrange ?? DEFAULT_ARRANGE);
+  const [boardMenu, setBoardMenu] = useState<{ x: number; y: number } | null>(null);
   useApplyTheme();
 
   // Very first visit: open the backpack once so the way in is obvious.
@@ -77,7 +84,10 @@ export default function App() {
   }, []);
 
   return (
-    <div className={`workspace ${grid ? 'has-grid' : ''} ${drawMode ? 'is-drawing' : ''} ${compact ? 'is-compact' : ''}`}>
+    <div
+      className={`workspace ${grid ? 'has-grid' : ''} ${arrange.grid ? 'snap-grid' : ''} ${drawMode ? 'is-drawing' : ''} ${compact ? 'is-compact' : ''} ${arranging ? 'is-arranging' : ''}`}
+      style={{ '--snap': `${arrange.gridSize}px` } as CSSProperties}
+    >
       <h1 className="sr-only">UJI workspace</h1>
       <div
         className="board"
@@ -85,12 +95,20 @@ export default function App() {
           useUI.getState().selectSticker(null);
           useUI.getState().setFocused(null);
         }}
+        onContextMenu={(e) => {
+          // Phones show one window at a time, so there's nothing to arrange there.
+          if (compact) return;
+          e.preventDefault();
+          setBoardMenu({ x: e.clientX, y: e.clientY });
+        }}
       />
       <InkLayer />
       <StickerLayer />
       <main className="desk" aria-label="Whiteboard">
         <WindowLayer compact={compact} />
+        <GuideLayer />
       </main>
+      {boardMenu && <BoardMenu x={boardMenu.x} y={boardMenu.y} onClose={() => setBoardMenu(null)} />}
       <DrawingSurface />
       <BackpackButton />
       <BackpackOverlay compact={compact} />

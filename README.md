@@ -23,6 +23,7 @@ Shortcuts: **Ctrl/⌘ K** opens Math tools search in the backpack · **Ctrl/⌘ 
 | --- | --- |
 | Whiteboard with a single **backpack button** (just the backpack, no frame) as the only chrome: drag it anywhere and it snaps to the nearest edge (pulling into corners); position persists. A dot means "what next?", a number means tucked-away windows | Working |
 | Floating windows: drag, resize (8 handles), focus/z-order, minimize, maximize, close, keyboard move/resize, smart placement, viewport clamping, persistence | Working |
+| **Window arrangement** (Settings → Workspace → Window arrangement, all off by default): snap to a 12/24/48px grid (the board's dots move onto the snap points), snap to other windows (edges line up; side by side keeps a 12px gap; screen edges too), and periwinkle alignment guides while dragging or resizing. Works for windows and desk items, for moving, resizing and arrow-key nudges. Hold **Alt** to place freely. **Right-click the whiteboard** for Tidy up (rows in reading order, no overlaps, shrinking only if needed, with Undo) and quick toggles | Working |
 | Close vs. clear: closing a window is quiet (no pop-up); one with content is kept under "On your desk → closed" in the bag to reopen. Clearing a page is a separate action with its own undo. Messages (toasts) follow light/dark | Working |
 | Backpack = the whole menu. A top icon bar switches between the bag itself, Math tools, Desks, My stuff, Settings and the Arcade, and launches Challenge and Trip on da Ship, with the pen on the right. The bag opens toward the screen centre from wherever the button is. **A "type a problem" field** detects the tool ("x² − 5x + 6 = 0", "2x + 3y = 12, x − y = 1", "mean of 3, 7, 9", "legs 5 and 12", "angle 35°, hypotenuse 10", "3, 7, 11, …"), or you pick one. Click-to-place **and drag-to-place**, Cheat ↔ Lesson switch (no Challenge), tucked-away and recently closed windows, never consumed | Working |
 | First visit opens the backpack once; after that every session starts on a blank board | Working |
@@ -108,6 +109,7 @@ src/
                            strokes, stickers, recent problems, progress, settings
     ui.ts                  Ephemeral UI state: backpack, draw tool, toasts, focus
     placement.ts           Smart window placement + viewport clamping
+    snap.ts, tidy.ts       Window snapping (grid, edges, guides) and Tidy up layout (tested)
     desks.ts               Saved desks (named board snapshots) behind a DeskStorage adapter
     types.ts
   data/

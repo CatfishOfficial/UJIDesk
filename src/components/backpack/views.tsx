@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronRight, Clock, RotateCcw, Undo2 } from 'lucide-react';
+import { ChevronRight, Clock, LayoutGrid, RotateCcw, Undo2 } from 'lucide-react';
 import { SOLVER_TYPES, useWorkspace, usePracticeLock } from '../../state/store';
 import { useUI } from '../../state/ui';
 import { MATH_CATALOG, BACKPACK_ITEMS, type BackpackItem } from '../../data/catalog';
@@ -17,6 +17,7 @@ import { HandUnderline } from '../ui/HandDrawn';
 import { Pixel } from '../../data/pixel';
 import { windowLabel } from '../windows/windowLabel';
 import { QuickProblem } from './QuickProblem';
+import { DEFAULT_ARRANGE, type ArrangeSettings } from '../../state/snap';
 import { localPoint, windowAt } from '../StickerLayer';
 
 const PROBLEM_TYPES = new Set<string>([...SOLVER_TYPES, 'challenge']);
@@ -370,7 +371,10 @@ export function SettingsView() {
         <span>Reduce motion (also follows your system setting)</span>
       </label>
 
-      <div className="inv-group-name">Tidy up</div>
+      <div className="inv-group-name">Workspace</div>
+      <WindowArrangement />
+
+      <div className="inv-group-name">Clear &amp; reset</div>
       <p className="muted small">Each of these asks twice. Nothing else gets touched.</p>
       <div className="reset-list">
         <ArmedButton label="Clear whiteboard drawing" onConfirm={() => (reset('drawing'), toast('Drawing cleared.'))} />
@@ -479,5 +483,54 @@ export function StickersView({ compact }: { compact: boolean }) {
         }
       />
     </div>
+  );
+}
+
+/** Settings → Workspace → Window arrangement. Everything here is off until switched on. */
+function WindowArrangement() {
+  const arrange = useWorkspace((s) => s.settings.arrange ?? DEFAULT_ARRANGE);
+  const setSettings = useWorkspace((s) => s.setSettings);
+  const tidyUp = useWorkspace((s) => s.tidyUp);
+  const setBackpack = useUI((s) => s.setBackpack);
+  const set = (patch: Partial<ArrangeSettings>) => setSettings({ arrange: { ...arrange, ...patch } });
+  return (
+    <section className="arrange" aria-labelledby="arrange-title">
+      <div className="arrange-title" id="arrange-title">
+        Window arrangement
+      </div>
+      <label className="setting">
+        <input type="checkbox" checked={arrange.grid} onChange={(e) => set({ grid: e.target.checked })} />
+        <span>Snap to grid</span>
+      </label>
+      <div className={`setting-row arrange-sub ${arrange.grid ? '' : 'is-off'}`}>
+        <span className="muted small">Grid size</span>
+        <div className="seg" role="radiogroup" aria-label="Grid size">
+          {([12, 24, 48] as const).map((g) => (
+            <button key={g} type="button" role="radio" aria-checked={arrange.gridSize === g} aria-pressed={arrange.gridSize === g} disabled={!arrange.grid} onClick={() => set({ gridSize: g })}>
+              {g}px
+            </button>
+          ))}
+        </div>
+      </div>
+      <label className="setting">
+        <input type="checkbox" checked={arrange.windows} onChange={(e) => set({ windows: e.target.checked })} />
+        <span>Snap to other windows (lines up edges, keeps an even gap)</span>
+      </label>
+      <label className="setting">
+        <input type="checkbox" checked={arrange.guides} onChange={(e) => set({ guides: e.target.checked })} />
+        <span>Alignment guides while dragging</span>
+      </label>
+      <p className="muted small arrange-hint">Hold Alt while dragging to place a window freely. Right-click the whiteboard to tidy up.</p>
+      <button
+        type="button"
+        className="btn btn-sm"
+        onClick={() => {
+          setBackpack(false);
+          tidyUp();
+        }}
+      >
+        <LayoutGrid size={13} /> Tidy up windows
+      </button>
+    </section>
   );
 }

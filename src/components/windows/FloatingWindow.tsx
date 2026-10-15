@@ -1,7 +1,8 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent as RPointerEvent, type ReactNode } from 'react';
 import { Maximize2, Minimize2, Minus, X } from 'lucide-react';
 import type { Win } from '../../state/types';
-import { useWorkspace } from '../../state/store';
+import { deskBoxes, useWorkspace } from '../../state/store';
+import { gridStep, snapActive, snapMove, snapResize, type Box } from '../../state/snap';
 import { useUI } from '../../state/ui';
 import { TOOLS } from '../../data/tools';
 import { TOOL_ICONS } from '../ui/icons';
@@ -26,7 +27,7 @@ interface Props {
 export function FloatingWindow({ win, title, headerExtra, children, bodyClassName = '', compact, compactHidden, headerStyle }: Props) {
   const meta = TOOLS[win.type];
   const ref = useRef<HTMLElement>(null);
-  const gesture = useRef<{ kind: 'move' | Dir; px: number; py: number; x: number; y: number; w: number; h: number; next?: { x: number; y: number; w: number; h: number } } | null>(null);
+  const gesture = useRef<{ kind: 'move' | Dir; px: number; py: number; x: number; y: number; w: number; h: number; next?: { x: number; y: number; w: number; h: number }; others: Box[] } | null>(null);
   const [active, setActive] = useState<null | 'move' | 'resize'>(null);
 
   const focusWindow = useWorkspace((s) => s.focusWindow);
@@ -54,7 +55,7 @@ export function FloatingWindow({ win, title, headerExtra, children, bodyClassNam
   const begin = (e: RPointerEvent<HTMLElement>, kind: 'move' | Dir) => {
     if (e.button !== 0 || !free) return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    gesture.current = { kind, px: e.clientX, py: e.clientY, x: win.x, y: win.y, w: win.w, h: win.h };
+    gesture.current = { kind, px: e.clientX, py: e.clientY, x: win.x, y: win.y, w: win.w, h: win.h, others: deskBoxes(win.id) };
     setActive(kind === 'move' ? 'move' : 'resize');
     e.preventDefault();
   };
@@ -67,9 +68,19 @@ export function FloatingWindow({ win, title, headerExtra, children, bodyClassNam
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     let { x, y, w, h } = g;
+    // Snapping (if switched on in Settings). Holding Alt places the window freely.
+    const arrange = useWorkspace.getState().settings.arrange;
+    const snapping = !!arrange && snapActive(arrange) && !e.altKey;
     if (g.kind === 'move') {
-      x = Math.min(Math.max(g.x + dx, -g.w + 96), vw - 96);
-      y = Math.min(Math.max(g.y + dy, 0), vh - DOCK_SPACE + 16);
+      x = g.x + dx;
+      y = g.y + dy;
+      if (snapping) {
+        const r = snapMove({ x, y, w, h }, g.others, arrange, { w: vw, h: vh });
+        ({ x, y } = r.box);
+        useUI.getState().setGuides(r.guides);
+      } else useUI.getState().setGuides([]);
+      x = Math.min(Math.max(x, -g.w + 96), vw - 96);
+      y = Math.min(Math.max(y, 0), vh - DOCK_SPACE + 16);
     } else {
       const k = g.kind;
       if (k.includes('e')) w = Math.max(meta.min.w, g.w + dx);
@@ -83,6 +94,11 @@ export function FloatingWindow({ win, title, headerExtra, children, bodyClassNam
         y = Math.max(0, g.y + g.h - h);
         h = g.y + g.h - y;
       }
+      if (snapping) {
+        const r = snapResize({ x, y, w, h }, k, g.others, arrange, { w: vw, h: vh }, meta.min);
+        ({ x, y, w, h } = r.box);
+        useUI.getState().setGuides(r.guides);
+      } else useUI.getState().setGuides([]);
     }
     g.next = { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) };
     apply(g.next);
@@ -92,6 +108,7 @@ export function FloatingWindow({ win, title, headerExtra, children, bodyClassNam
     const g = gesture.current;
     gesture.current = null;
     setActive(null);
+    useUI.getState().setGuides([]);
     if (g?.next) setRect(win.id, g.next);
   };
 
@@ -101,6 +118,16 @@ export function FloatingWindow({ win, title, headerExtra, children, bodyClassNam
     const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
     if (!d) return;
     e.preventDefault();
+    // With grid snapping on, arrow keys move a whole grid step and land on the grid (Alt still nudges freely).
+    const arrange = useWorkspace.getState().settings.arrange;
+    if (arrange?.grid && !e.altKey) {
+      const gs = arrange.gridSize;
+      const sx = Math.sign(d[0]) as -1 | 0 | 1;
+      const sy = Math.sign(d[1]) as -1 | 0 | 1;
+      if (e.shiftKey) setRect(win.id, { w: Math.max(meta.min.w, sx ? gridStep(win.x + win.w, sx as 1 | -1, gs) - win.x : win.w), h: Math.max(meta.min.h, sy ? gridStep(win.y + win.h, sy as 1 | -1, gs) - win.y : win.h) });
+      else setRect(win.id, { x: sx ? gridStep(win.x, sx as 1 | -1, gs) : win.x, y: Math.max(0, sy ? gridStep(win.y, sy as 1 | -1, gs) : win.y) });
+      return;
+    }
     if (e.shiftKey) {
       setRect(win.id, { w: Math.max(meta.min.w, win.w + d[0]), h: Math.max(meta.min.h, win.h + d[1]) });
     } else {

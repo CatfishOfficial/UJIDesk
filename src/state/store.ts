@@ -2,7 +2,9 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { AssistMode, PlacedSticker, Progress, RecentProblem, Settings, Stroke, Win, WindowType } from './types';
 import { TOOLS } from '../data/tools';
-import { clampToViewport, findPlacement, findStickerSpot, fitSize } from './placement';
+import { clampToViewport, findPlacement, findStickerSpot, fitSize, viewport, DOCK_SPACE } from './placement';
+import { DEFAULT_ARRANGE } from './snap';
+import { tidyLayout } from './tidy';
 import { BUTTON, DEFAULT_POS, buttonXY } from '../components/backpack/geometry';
 import { useUI } from './ui';
 import { STICKER_BY_KIND } from '../data/stickers';
@@ -74,6 +76,8 @@ export interface WorkspaceState {
   setStrokes: (strokes: Stroke[]) => void;
 
   setSettings: (patch: Partial<Settings>) => void;
+  /** Lays out every window on the desk in tidy rows, with an Undo. */
+  tidyUp: () => void;
   reset: (what: 'drawing' | 'windows' | 'stickers' | 'progress' | 'everything') => void;
 }
 
@@ -101,7 +105,7 @@ const initialProgress: Progress = {
   trips: 0,
 };
 
-const initialSettings: Settings = { theme: 'light', grid: true, motion: 'system', backpackPos: { edge: 'bottom', t: 0 } };
+const initialSettings: Settings = { theme: 'light', grid: true, motion: 'system', backpackPos: { edge: 'bottom', t: 0 }, arrange: DEFAULT_ARRANGE };
 
 const isTaskOpen = (windows: Record<string, Win>) => Object.values(windows).some((w) => TOOLS[w.type].isTask);
 
@@ -402,6 +406,55 @@ export const useWorkspace = create<WorkspaceState>()(
 
       setSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
 
+      tidyUp: () => {
+        const s = get();
+        const visible = Object.values(s.windows).filter((w) => !w.minimized);
+        if (!visible.length) return;
+        const { vw, vh } = viewport();
+        // Keep the edge with the backpack button clear.
+        const edge = s.settings.backpackPos?.edge ?? 'bottom';
+        const clear = BUTTON + 24;
+        const area = {
+          x0: 16 + (edge === 'left' ? clear : 0),
+          y0: 16 + (edge === 'top' ? clear : 0),
+          x1: vw - 16 - (edge === 'right' ? clear : 0),
+          y1: vh - DOCK_SPACE - (edge === 'bottom' ? clear : 0),
+        };
+        const a = s.settings.arrange ?? DEFAULT_ARRANGE;
+        const items = visible.map((w) => {
+          const meta = TOOLS[w.type];
+          const h = meta.chrome === 'bare' && meta.aspect ? Math.round(w.w / meta.aspect) : w.h;
+          return { id: w.id, x: w.x, y: w.y, w: w.w, h, min: meta.min, resizable: meta.resizable && meta.chrome !== 'bare' };
+        });
+        const layout = tidyLayout(items, area, a.grid ? { gap: Math.min(a.gridSize, 24), align: a.gridSize } : { gap: 16 });
+        const before = Object.fromEntries(visible.map((w) => [w.id, { x: w.x, y: w.y, w: w.w, h: w.h, maximized: w.maximized }]));
+        const ui = useUI.getState();
+        ui.setArranging(true);
+        window.setTimeout(() => useUI.getState().setArranging(false), 260);
+        set((st) => {
+          const windows = { ...st.windows };
+          for (const [id, b] of Object.entries(layout)) {
+            const w = windows[id];
+            if (!w) continue;
+            const meta = TOOLS[w.type];
+            windows[id] = { ...w, x: b.x, y: b.y, w: b.w, h: meta.chrome === 'bare' && meta.aspect ? Math.round(b.w / meta.aspect) : b.h, maximized: false };
+          }
+          return { windows };
+        });
+        ui.toast(`Tidied up ${visible.length} window${visible.length === 1 ? '' : 's'}.`, {
+          label: 'Undo',
+          run: () => {
+            useUI.getState().setArranging(true);
+            window.setTimeout(() => useUI.getState().setArranging(false), 260);
+            set((st) => {
+              const windows = { ...st.windows };
+              for (const [id, b] of Object.entries(before)) if (windows[id]) windows[id] = { ...windows[id], ...b };
+              return { windows };
+            });
+          },
+        });
+      },
+
       reset: (what) => {
         if (what === 'drawing' || what === 'everything') set({ strokes: [] });
         if (what === 'stickers' || what === 'everything') set({ stickers: [] });
@@ -439,7 +492,7 @@ export const useWorkspace = create<WorkspaceState>()(
           ...current,
           ...p,
           progress: { ...current.progress, ...p.progress, tickets: { ...current.progress.tickets, ...p.progress?.tickets } },
-          settings: { ...current.settings, ...p.settings },
+          settings: { ...current.settings, ...p.settings, arrange: { ...current.settings.arrange, ...p.settings?.arrange } },
         };
       },
     },
@@ -475,4 +528,14 @@ export function isPracticeRunning(windows: Record<string, Win>): boolean {
 
 export function usePracticeLock(): boolean {
   return useWorkspace((s) => isPracticeRunning(s.windows));
+}
+
+/** What's on the desk right now, as boxes, for snapping against (minus one window, the one being moved). */
+export function deskBoxes(excludeId: string): { x: number; y: number; w: number; h: number }[] {
+  return Object.values(useWorkspace.getState().windows)
+    .filter((w) => w.id !== excludeId && !w.minimized && !w.maximized)
+    .map((w) => {
+      const meta = TOOLS[w.type];
+      return { x: w.x, y: w.y, w: w.w, h: meta.chrome === 'bare' && meta.aspect ? Math.round(w.w / meta.aspect) : w.h };
+    });
 }

@@ -1,3 +1,4 @@
+import type { Guide } from './snap';
 import { create } from 'zustand';
 import type { StrokeTool } from './types';
 
@@ -23,6 +24,10 @@ interface UIState {
   toasts: Toast[];
   /** Ids of windows that should briefly highlight (e.g. a graph that just received an equation). */
   pulse: Record<string, number>;
+  /** Alignment guides to draw while a window is being dragged or resized. */
+  guides: Guide[];
+  /** Briefly true while Tidy up slides windows into place. */
+  arranging: boolean;
 
   setBackpack: (open: boolean, view?: BagView) => void;
   setDrawMode: (on: boolean) => void;
@@ -34,6 +39,8 @@ interface UIState {
   toast: (text: string, action?: Toast['action']) => void;
   dismissToast: (id: number) => void;
   pulseWindow: (id: string) => void;
+  setGuides: (g: Guide[]) => void;
+  setArranging: (on: boolean) => void;
 }
 
 let toastSeq = 1;
@@ -49,6 +56,15 @@ export const useUI = create<UIState>()((set, get) => ({
   selectedSticker: null,
   toasts: [],
   pulse: {},
+  guides: [],
+  arranging: false,
+  // Only update when the lines actually change, so dragging stays cheap.
+  setGuides: (g) => {
+    const cur = get().guides;
+    if (cur.length === g.length && cur.every((c, i) => c.axis === g[i].axis && c.at === g[i].at && c.from === g[i].from && c.to === g[i].to)) return;
+    set({ guides: g });
+  },
+  setArranging: (on) => set({ arranging: on }),
 
   setBackpack: (open, view) => set({ backpackOpen: open, backpackView: view ?? (open ? get().backpackView : 'home') }),
   setDrawMode: (on) => set({ drawMode: on, backpackOpen: false, selectedSticker: null }),
