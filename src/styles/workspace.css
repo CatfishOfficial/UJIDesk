@@ -131,14 +131,16 @@
 .win.is-maximized {
   left: 12px !important;
   top: 12px !important;
-  width: calc(100vw - 24px) !important;
-  height: calc(100vh - 24px) !important;
+  /* vw/vh are always real pixels, even here inside .stage, so they're divided
+     by --ui-scale to land back on the true viewport after .stage's transform. */
+  width: calc(100vw / var(--ui-scale, 1) - 24px) !important;
+  height: calc(100vh / var(--ui-scale, 1) - 24px) !important;
 }
 .win.is-compact {
   left: 0 !important;
   top: 0 !important;
-  width: 100vw !important;
-  height: 100dvh !important;
+  width: calc(100vw / var(--ui-scale, 1)) !important;
+  height: calc(100dvh / var(--ui-scale, 1)) !important;
   border-radius: 0;
   border-width: 0 0 1px;
   animation: none;
@@ -354,7 +356,7 @@
   position: fixed;
   z-index: 90;
   width: 268px;
-  max-height: calc(100vh - 16px);
+  max-height: calc(100vh / var(--ui-scale, 1) - 16px);
   overflow: auto;
   padding: 6px;
   border-radius: 12px;
@@ -658,8 +660,8 @@
   pointer-events: auto;
   position: fixed;
   /* Wide enough for every tab in the top bar, plus the pen and close, without scrolling. */
-  width: min(436px, calc(100vw - 24px));
-  max-height: calc(100vh - 96px);
+  width: min(436px, calc(100vw / var(--ui-scale, 1) - 24px));
+  max-height: calc(100vh / var(--ui-scale, 1) - 96px);
   display: flex;
   flex-direction: column;
   background: var(--bag);
@@ -908,7 +910,7 @@
   bottom: 0;
   width: 100%;
   border-radius: 20px 20px 0 0;
-  max-height: calc(100dvh - 40px);
+  max-height: calc(100dvh / var(--ui-scale, 1) - 40px);
   transform-origin: 50% 100%;
 }
 
@@ -1291,7 +1293,7 @@ body.is-placing * {
   border: 1px solid var(--line);
   box-shadow: var(--shadow-2);
   animation: rise-in var(--dur) var(--ease);
-  max-width: calc(100vw - 24px);
+  max-width: calc(100vw / var(--ui-scale, 1) - 24px);
   overflow-x: auto;
 }
 .is-compact .draw-toolbar {

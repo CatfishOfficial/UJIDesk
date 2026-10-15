@@ -222,7 +222,15 @@ export function ProblemShell({ winId, type, solve, renderInputs, emptyInputs, ex
             </button>
           )}
           {isEmpty && !data.solved && (
-            <button type="button" className="btn btn-quiet btn-sm try-example" onClick={() => submit(examples[Math.floor(Math.random() * examples.length)])}>
+            <button
+              type="button"
+              className="btn btn-quiet btn-sm try-example"
+              onClick={() => {
+                // An example is for seeing how it's done, so it always walks through the lesson.
+                if (mode !== 'lesson') setMode('lesson');
+                submit(examples[Math.floor(Math.random() * examples.length)]);
+              }}
+            >
               <Sparkles size={13} /> Try an example
             </button>
           )}
