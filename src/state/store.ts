@@ -151,6 +151,24 @@ export const useWorkspace = create<WorkspaceState>()(
             return existing.id;
           }
         }
+        // Items (fishbowl, clock) tucked away in the bag come back as they were, rather than as a new copy.
+        if (meta.chrome === 'bare') {
+          const tucked = Object.values(state.windows)
+            .filter((w) => w.type === type && w.minimized)
+            .sort((a, b) => b.z - a.z)[0];
+          if (tucked) {
+            const others = Object.values(state.windows).filter((w) => w.id !== tucked.id);
+            const near = opts.near ? state.windows[opts.near] : undefined;
+            // Dropped somewhere on purpose: it goes there. Otherwise it returns to its old spot.
+            const spot = opts.at ? findPlacement({ w: tucked.w, h: tucked.h }, others, near, opts.at) : { x: tucked.x, y: tucked.y };
+            set((s) => ({
+              zTop: s.zTop + 1,
+              windows: { ...s.windows, [tucked.id]: { ...tucked, ...clampToViewport({ ...tucked, ...spot }), minimized: false, z: s.zTop + 1 } },
+            }));
+            if (opts.focus !== false) useUI.getState().setFocused(tucked.id);
+            return tucked.id;
+          }
+        }
         const id = uid(type);
         const want = meta.sizeFor?.({ ...meta.initialData(), ...opts.data }) ?? meta.size;
         const size = fitSize(want.w, want.h);

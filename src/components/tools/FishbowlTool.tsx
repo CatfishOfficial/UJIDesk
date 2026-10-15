@@ -253,7 +253,7 @@ export function FishbowlTool({ winId }: { winId: string }) {
               </MenuChips>
             </>
           )}
-          <ItemMenuFooter winId={winId} onClose={closeMenu} putAwayLabel="Put bowl away" />
+          <ItemMenuFooter winId={winId} onClose={closeMenu} />
         </ContextMenu>
       )}
     </div>
