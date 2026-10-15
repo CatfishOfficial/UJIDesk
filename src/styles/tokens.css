@@ -1,0 +1,210 @@
+:root {
+  /* Surfaces: a warm whiteboard, crisp white windows */
+  --board: #faf9f6;
+  --board-dot: #dedad1;
+  --surface: #ffffff;
+  --surface-2: #f7f6f3;
+  --surface-3: #efede8;
+  --line: #e8e5de;
+  --line-strong: #d5d1c7;
+
+  /* Ink */
+  --ink: #24232b;
+  --ink-2: #57555f;
+  --ink-3: #8b8994;
+  --ink-4: #b4b2bb;
+
+  /* Signature periwinkle, plus muted guidance colors */
+  --accent: #6d74cf;
+  --accent-hover: #5c63bd;
+  --accent-soft: #eeeffb;
+  --accent-ink: #474da3;
+  --green: #4f8f6c;
+  --green-soft: #e8f3ec;
+  --coral: #cf6b52;
+  --coral-soft: #fbede8;
+  --sun: #f6e7a6;
+  --sun-ink: #6b5a1e;
+
+  /* Sticky note papers */
+  --paper-sun: #fbf0b8;
+  --paper-rose: #f8dcd6;
+  --paper-mint: #d9efe2;
+  --paper-lilac: #e3e2f8;
+
+  /* Drawing inks */
+  --ink-graphite: #3a3942;
+  --ink-periwinkle: #6d74cf;
+  --ink-green: #4f8f6c;
+  --ink-coral: #cf6b52;
+  --ink-highlight: #f2d65c;
+
+  --shadow-1: 0 1px 2px rgba(36, 32, 48, 0.05), 0 6px 18px rgba(36, 32, 48, 0.06);
+  --shadow-2: 0 2px 4px rgba(36, 32, 48, 0.05), 0 14px 36px rgba(36, 32, 48, 0.11);
+  --shadow-3: 0 4px 8px rgba(36, 32, 48, 0.06), 0 22px 56px rgba(36, 32, 48, 0.16);
+
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-xs: 6px;
+
+  --font-ui: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-math: 'STIX Two Text', 'Cambria Math', Cambria, Georgia, serif;
+  --font-hand: 'Caveat', 'Segoe Print', 'Bradley Hand', cursive;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --dur-fast: 110ms;
+  --dur: 170ms;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  --focus-ring: 0 0 0 2px var(--surface), 0 0 0 4px color-mix(in srgb, var(--accent) 70%, transparent);
+
+  /* Named surfaces that used to be hard-coded */
+  --bag: #fdfcf9;
+  --slot-bottom: #fbfaf6;
+  --water-tint: #e3f2fb;
+  --pad-paper: #fffefb;
+  --pad-line: #e8eef8;
+  --graph-bg: #ffffff;
+  --graph-minor: #efede8;
+  --graph-major: #e1ded6;
+  --graph-axis: #9b98a3;
+  --pill-bg: rgba(255, 255, 255, 0.88);
+  --toast-bg: #ffffff;
+  --toast-ink: #24232b;
+  --toast-muted: #8b8994;
+  --toast-action: #474da3;
+  --toast-edge: #d5d1c7;
+  --toast-hover: rgba(36, 35, 43, 0.06);
+  --sticky-ink: #3b3628;
+  --ticket-day: #fff4cf;
+  --ticket-day-2: #ffe9a6;
+  --ticket-day-edge: #e8c86a;
+  --ticket-night: #eeedff;
+  --ticket-night-2: #dcdbfb;
+  --ticket-night-edge: #b3b5ec;
+
+  /* Pixel-art skins */
+  --sticker-edge: #ffffff;
+  --bowl-glass: #7aaed2;
+  --bowl-rim: #e3f3fc;
+  --bowl-air: #f3fbff;
+  --bowl-surface: #e6f6fe;
+  --bowl-water-1: #cde9f8;
+  --bowl-water-2: #b5ddf4;
+  --bowl-water-3: #9ed0ee;
+  --bowl-glint: #ffffff;
+  --bowl-gravel-1: #d9ccb2;
+  --bowl-gravel-2: #c4b28f;
+  --bowl-gravel-3: #e8dfca;
+  --bowl-gravel-4: #a8977a;
+  --bowl-shadow: rgba(40, 36, 52, 0.07);
+  --bowl-plant-1: #4f9a5e;
+  --bowl-plant-2: #7cc289;
+  --clock-modern-body: #f6f5f1;
+  --clock-modern-edge: #c9c5bb;
+  --clock-modern-shade: #e4e1d9;
+  --clock-modern-digit: #2a2932;
+  --clock-modern-dim: #9a98a3;
+  color-scheme: light;
+}
+
+/* ─── Dark: a chalkboard-ish night desk, same warmth, same accents ─── */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --board: #16161b;
+  --board-dot: #2b2b34;
+  --surface: #1f1f26;
+  --surface-2: #26262e;
+  --surface-3: #30303a;
+  --line: #34343e;
+  --line-strong: #464652;
+
+  --ink: #ecebf2;
+  --ink-2: #bcbbc7;
+  --ink-3: #8c8b98;
+  --ink-4: #5f5e6b;
+
+  --accent: #8a90ea;
+  --accent-hover: #9ca1f2;
+  --accent-soft: #2a2c4a;
+  --accent-ink: #bcc0fb;
+  --green: #74c294;
+  --green-soft: #1d3127;
+  --coral: #ee8d75;
+  --coral-soft: #3b2521;
+  --sun: #8c7a35;
+  --sun-ink: #f1df98;
+
+  /* paper stays paper, just a little dimmer */
+  --paper-sun: #e9dc95;
+  --paper-rose: #e6c6bf;
+  --paper-mint: #c4dccd;
+  --paper-lilac: #cfcdee;
+
+  --ink-graphite: #dcdbe4;
+  --ink-periwinkle: #9da2f0;
+  --ink-green: #7fcb9d;
+  --ink-coral: #f09a83;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.25);
+  --shadow-2: 0 2px 4px rgba(0, 0, 0, 0.35), 0 14px 36px rgba(0, 0, 0, 0.35);
+  --shadow-3: 0 4px 8px rgba(0, 0, 0, 0.4), 0 22px 56px rgba(0, 0, 0, 0.45);
+
+  --bag: #1d1d24;
+  --slot-bottom: #22222a;
+  --water-tint: #20303d;
+  --pad-paper: #1c1c22;
+  --pad-line: #2b3242;
+  --graph-bg: #1a1a20;
+  --graph-minor: #25252d;
+  --graph-major: #33333d;
+  --graph-axis: #7d7c8a;
+  --pill-bg: rgba(31, 31, 38, 0.86);
+  --toast-bg: #26262e;
+  --toast-ink: #ecebf2;
+  --toast-muted: #8c8b98;
+  --toast-action: #bcc0fb;
+  --toast-edge: #464652;
+  --toast-hover: rgba(255, 255, 255, 0.08);
+  --ticket-day: #3a3322;
+  --ticket-day-2: #463b20;
+  --ticket-day-edge: #7a6527;
+  --ticket-night: #262842;
+  --ticket-night-2: #2e3152;
+  --ticket-night-edge: #5559a0;
+
+  /* Night skins: dark die-cut edges, and a moonlit bowl with dark glass */
+  --sticker-edge: #3a4a72; /* muted night blue, distinct from the greys inside designs */
+  --bowl-glass: #22324a;
+  --bowl-rim: #3b5878;
+  --bowl-air: #1f2a3a;
+  --bowl-surface: #4a7fae;
+  --bowl-water-1: #2f6390;
+  --bowl-water-2: #245380;
+  --bowl-water-3: #1a4169;
+  --bowl-glint: #8fb4d6;
+  --bowl-gravel-1: #8a7f6a;
+  --bowl-gravel-2: #6f634b;
+  --bowl-gravel-3: #9a8f77;
+  --bowl-gravel-4: #554a37;
+  --bowl-shadow: rgba(0, 0, 0, 0.35);
+  --bowl-plant-1: #3c7a4a;
+  --bowl-plant-2: #5c9c69;
+  --clock-modern-body: #24242c;
+  --clock-modern-edge: #0f0f13;
+  --clock-modern-shade: #1b1b22;
+  --clock-modern-digit: #ecebf2;
+  --clock-modern-dim: #7d7c8a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur: 0ms;
+  }
+}
+
+:root[data-motion='reduced'] {
+  --dur-fast: 0ms;
+  --dur: 0ms;
+}
