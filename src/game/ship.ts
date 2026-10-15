@@ -17,8 +17,8 @@ export function timeOfDay(now: Date = new Date()): TimeOfDay {
 
 /** A first-try Challenge answer is worth 10 tokens. */
 export const TOKENS_PER_QUESTION = 10;
-/** The ticket for the current time of day: about six questions. */
-export const TICKET_PRICE = 60;
+/** The ticket for the current time of day: about five questions. */
+export const TICKET_PRICE = 50;
 /** The other time of day costs extra: about ten questions. */
 export const OFF_HOURS_TICKET_PRICE = 100;
 /** Casts per ticket. Keeps a trip short. */
