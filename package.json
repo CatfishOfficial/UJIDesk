@@ -16,6 +16,8 @@
     "@fontsource/caveat": "^5.1.0",
     "@fontsource/silkscreen": "^5.1.0",
     "@fontsource/stix-two-text": "^5.1.0",
+    "@upstash/ratelimit": "^2.0.5",
+    "@upstash/redis": "^1.34.3",
     "lucide-react": "^0.454.0",
     "openai": "^4.77.0",
     "perfect-freehand": "^1.2.2",

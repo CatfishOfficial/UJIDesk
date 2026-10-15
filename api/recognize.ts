@@ -2,6 +2,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import OpenAI from 'openai';
 import { zodResponseFormat } from 'openai/helpers/zod';
 import { z } from 'zod/v4';
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
 import { RECOGNIZABLE_TOOLS, type RecognitionKind } from '../src/data/recognitionSchema';
 
 /**
@@ -13,6 +15,29 @@ import { RECOGNIZABLE_TOOLS, type RecognitionKind } from '../src/data/recognitio
  */
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// Rate limiting needs a store that outlives any one function instance — plain
+// in-memory counters don't work here since Vercel can route requests to any
+// warm (or cold) instance. Optional by design: until a Redis integration is
+// connected (see README), this fails open rather than blocking every request.
+const hasRedis = !!(process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL);
+const ratelimit = hasRedis
+  ? new Ratelimit({ redis: Redis.fromEnv(), limiter: Ratelimit.slidingWindow(20, '10 m'), prefix: 'recognize' })
+  : null;
+
+/** Optional: set ALLOWED_ORIGIN to this site's own deployed URL to stop other sites from calling this endpoint directly with your key. Unset = no check. */
+function originAllowed(req: VercelRequest): boolean {
+  const allowed = process.env.ALLOWED_ORIGIN;
+  if (!allowed) return true;
+  const origin = req.headers.origin;
+  return typeof origin === 'string' && origin === allowed;
+}
+
+function clientIp(req: VercelRequest): string {
+  const fwd = req.headers['x-forwarded-for'];
+  const first = Array.isArray(fwd) ? fwd[0] : fwd?.split(',')[0];
+  return first?.trim() || (req.headers['x-real-ip'] as string) || 'unknown';
+}
 
 const UncertainSpan = z.object({
   /** 0-based [start, end) character indices into "text". */
@@ -63,9 +88,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(405).json({ error: 'Use POST.' });
     return;
   }
+  if (!originAllowed(req)) {
+    res.status(403).json({ error: 'Not allowed from this origin.' });
+    return;
+  }
   if (!process.env.OPENAI_API_KEY) {
     res.status(500).json({ error: "The server isn't set up to read photos yet (missing API key)." });
     return;
+  }
+  if (ratelimit) {
+    const { success } = await ratelimit.limit(clientIp(req));
+    if (!success) {
+      res.status(429).json({ error: "That's a lot of photos at once — give it a minute and try again." });
+      return;
+    }
   }
 
   const { image, kind } = (req.body ?? {}) as { image?: string; kind?: RecognitionKind };
