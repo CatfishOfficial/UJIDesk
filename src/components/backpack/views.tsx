@@ -371,6 +371,10 @@ export function SettingsView() {
         <span>Reduce motion (also follows your system setting)</span>
       </label>
 
+      <div className="inv-group-name">Accessibility</div>
+      <TextSizePresets />
+      <p className="muted small">Windows and menus resize to match, so nothing ends up clipped.</p>
+
       <div className="inv-group-name">Display size</div>
       <ScaleSlider />
 
@@ -485,6 +489,36 @@ export function StickersView({ compact }: { compact: boolean }) {
               }
         }
       />
+    </div>
+  );
+}
+
+/**
+ * Settings → Accessibility → Text size. Presets onto the same scale the
+ * Display size slider drives below, so text, windows, and everything in them
+ * grow together — a window sized for Normal text can't end up clipping Giant
+ * text, since the window grows by exactly the same factor.
+ */
+const TEXT_SIZE_PRESETS = [
+  { id: 'normal', label: 'Normal', scale: 1 },
+  { id: 'big', label: 'Big', scale: 1.25 },
+  { id: 'giant', label: 'Giant', scale: 1.5 },
+] as const;
+
+function TextSizePresets() {
+  const scale = useWorkspace((s) => s.settings.uiScale) ?? 1;
+  const setSettings = useWorkspace((s) => s.setSettings);
+  const active = TEXT_SIZE_PRESETS.find((p) => Math.abs(p.scale - scale) < 0.02)?.id;
+  return (
+    <div className="setting-row">
+      <span>Text size</span>
+      <div className="seg" role="radiogroup" aria-label="Text size">
+        {TEXT_SIZE_PRESETS.map((p) => (
+          <button key={p.id} type="button" role="radio" aria-checked={active === p.id} aria-pressed={active === p.id} onClick={() => setSettings({ uiScale: p.scale })}>
+            {p.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
