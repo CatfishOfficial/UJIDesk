@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { RotateCw, X } from 'lucide-react';
 import { useWorkspace } from '../state/store';
 import { useUI } from '../state/ui';
+import { currentScale } from '../state/scale';
 import { STICKER_BY_KIND } from '../data/stickers';
 import type { PlacedSticker } from '../state/types';
 
@@ -53,7 +54,8 @@ export function windowAt(x: number, y: number, ignore?: Element | null): HTMLEle
 /** Where a client point sits inside a window, for sticking something there. */
 export function localPoint(win: HTMLElement, x: number, y: number) {
   const r = win.getBoundingClientRect();
-  return { x: x - r.left, y: y - r.top };
+  const scale = currentScale();
+  return { x: (x - r.left) / scale, y: (y - r.top) / scale };
 }
 
 function StickerItem({ s }: { s: PlacedSticker }) {
@@ -108,7 +110,8 @@ function StickerItem({ s }: { s: PlacedSticker }) {
     const cur = g.current;
     if (!cur) return;
     if (cur.kind === 'move') {
-      cur.next = { x: Math.round(cur.s.x + e.clientX - cur.px), y: Math.round(cur.s.y + e.clientY - cur.py) };
+      const scale = currentScale();
+      cur.next = { x: Math.round(cur.s.x + (e.clientX - cur.px) / scale), y: Math.round(cur.s.y + (e.clientY - cur.py) / scale) };
       markTarget(windowAt(e.clientX, e.clientY, ref.current));
     } else {
       const a0 = Math.atan2(cur.py - cur.cy, cur.px - cur.cx);
@@ -142,7 +145,8 @@ function StickerItem({ s }: { s: PlacedSticker }) {
       update(s.id, { on: targetId, x: Math.round(p.x), y: Math.round(p.y) });
     } else {
       const layer = document.querySelector('.sticker-layer')?.getBoundingClientRect();
-      update(s.id, { on: undefined, x: Math.round(cx - (layer?.left ?? 0)), y: Math.round(cy - (layer?.top ?? 0)) });
+      const scale = currentScale();
+      update(s.id, { on: undefined, x: Math.round((cx - (layer?.left ?? 0)) / scale), y: Math.round((cy - (layer?.top ?? 0)) / scale) });
     }
   };
 

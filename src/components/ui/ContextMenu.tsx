@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { currentScale } from '../../state/scale';
 
 /**
  * A small right-click menu, rendered at the pointer (clamped on screen).
@@ -10,19 +11,27 @@ export function ContextMenu({ x, y, label, onClose, children }: { x: number; y: 
   const [pos, setPos] = useState({ x, y });
 
   // Keep the whole menu on screen: measured before it paints, and again
-  // whenever its size or the window changes. Layout sizes ignore the
-  // opening animation's scale, so the measurement is the real one.
+  // whenever its size or the window changes. x/y arrive as real pointer
+  // coordinates; the menu itself renders through the page zoom, so its
+  // position (and the viewport it's being fit into) needs to be logical.
+  // offsetWidth/Height are already logical: they're the menu's own box,
+  // not a viewport-relative measurement.
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     const fit = () => {
+      const scale = currentScale();
+      const lx = x / scale;
+      const ly = y / scale;
+      const vw = window.innerWidth / scale;
+      const vh = window.innerHeight / scale;
       const w = el.offsetWidth;
       const h = el.offsetHeight;
       const m = 8;
-      const nx = x + w > window.innerWidth - m ? Math.max(m, window.innerWidth - w - m) : Math.max(m, x);
+      const nx = lx + w > vw - m ? Math.max(m, vw - w - m) : Math.max(m, lx);
       // Not enough room below: open upwards from the pointer if that fits better.
-      let ny = y;
-      if (y + h > window.innerHeight - m) ny = y - h >= m ? y - h : window.innerHeight - h - m;
+      let ny = ly;
+      if (ly + h > vh - m) ny = ly - h >= m ? ly - h : vh - h - m;
       setPos({ x: nx, y: Math.max(m, ny) });
     };
     fit();

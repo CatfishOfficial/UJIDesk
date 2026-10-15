@@ -6,7 +6,8 @@ import { gridStep, snapActive, snapMove, snapResize, type Box } from '../../stat
 import { useUI } from '../../state/ui';
 import { TOOLS } from '../../data/tools';
 import { TOOL_ICONS } from '../ui/icons';
-import { DOCK_SPACE } from '../../state/placement';
+import { DOCK_SPACE, viewport } from '../../state/placement';
+import { currentScale } from '../../state/scale';
 import { AttachedStickers } from '../StickerLayer';
 
 type Dir = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
@@ -63,10 +64,10 @@ export function FloatingWindow({ win, title, headerExtra, children, bodyClassNam
   const moveGesture = (e: RPointerEvent<HTMLElement>) => {
     const g = gesture.current;
     if (!g) return;
-    const dx = e.clientX - g.px;
-    const dy = e.clientY - g.py;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
+    const scale = currentScale();
+    const dx = (e.clientX - g.px) / scale;
+    const dy = (e.clientY - g.py) / scale;
+    const { vw, vh } = viewport();
     let { x, y, w, h } = g;
     // Snapping (if switched on in Settings). Holding Alt places the window freely.
     const arrange = useWorkspace.getState().settings.arrange;

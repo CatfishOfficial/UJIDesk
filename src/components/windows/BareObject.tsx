@@ -4,6 +4,8 @@ import { deskBoxes, useWorkspace } from '../../state/store';
 import { snapActive, snapMove, snapResize, type Box } from '../../state/snap';
 import { useUI } from '../../state/ui';
 import { TOOLS } from '../../data/tools';
+import { viewport } from '../../state/placement';
+import { currentScale } from '../../state/scale';
 import { AttachedStickers } from '../StickerLayer';
 
 const DRAG_THRESHOLD = 4;
@@ -50,18 +52,24 @@ export function BareObject({ win, label, children }: { win: Win; label: string; 
   const move = (e: React.PointerEvent<HTMLElement>) => {
     const d = g.current;
     if (!d || e.pointerId !== d.id) return;
-    const dx = e.clientX - d.px;
-    const dy = e.clientY - d.py;
+    // Threshold stays in real screen px (how far the pointer physically moved);
+    // the position itself is logical, since it's rendered through the page zoom.
+    const rdx = e.clientX - d.px;
+    const rdy = e.clientY - d.py;
     if (!d.live) {
-      if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+      if (Math.hypot(rdx, rdy) < DRAG_THRESHOLD) return;
       d.live = true;
       ref.current?.setPointerCapture(e.pointerId);
       setActive('move');
     }
+    const scale = currentScale();
+    const dx = rdx / scale;
+    const dy = rdy / scale;
     // Snapping (if switched on in Settings). Holding Alt places it freely.
     const arrange = useWorkspace.getState().settings.arrange;
     const snapping = !!arrange && snapActive(arrange) && !e.altKey;
-    const view = { w: window.innerWidth, h: window.innerHeight };
+    const { vw, vh } = viewport();
+    const view = { w: vw, h: vh };
     if (d.kind === 'move') {
       let x = d.x + dx;
       let y = d.y + dy;
@@ -71,8 +79,8 @@ export function BareObject({ win, label, children }: { win: Win; label: string; 
         useUI.getState().setGuides(r.guides);
       } else useUI.getState().setGuides([]);
       d.next = {
-        x: Math.round(Math.min(Math.max(x, -d.w + 60), window.innerWidth - 60)),
-        y: Math.round(Math.min(Math.max(y, 0), window.innerHeight - 40)),
+        x: Math.round(Math.min(Math.max(x, -d.w + 60), vw - 60)),
+        y: Math.round(Math.min(Math.max(y, 0), vh - 40)),
         w: d.w,
       };
     } else {

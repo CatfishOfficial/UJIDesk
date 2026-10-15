@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import type { AssistMode, PlacedSticker, Progress, RecentProblem, Settings, Stroke, Win, WindowType } from './types';
 import { TOOLS } from '../data/tools';
 import { clampToViewport, findPlacement, findStickerSpot, fitSize, viewport, DOCK_SPACE } from './placement';
+import { currentScale } from './scale';
 import { DEFAULT_ARRANGE } from './snap';
 import { tidyLayout } from './tidy';
 import { BUTTON, DEFAULT_POS, buttonXY } from '../components/backpack/geometry';
@@ -373,9 +374,10 @@ export const useWorkspace = create<WorkspaceState>()(
           set((s) => ({ stickers: [...s.stickers, st] }));
           return id;
         }
-        const vw = typeof window !== 'undefined' ? window.innerWidth : 1200;
-        const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
-        const prefer = at ?? { x: vw * (0.55 + Math.random() * 0.3), y: vh * (0.15 + Math.random() * 0.5) };
+        const { vw, vh } = viewport();
+        // `at` (a drop point) arrives as real pointer coordinates; everything
+        // else here is logical, since stickers render through the page zoom.
+        const prefer = at ? { x: at.x / currentScale(), y: at.y / currentScale() } : { x: vw * (0.55 + Math.random() * 0.3), y: vh * (0.15 + Math.random() * 0.5) };
         // Stickers sit beneath windows, so never place one where something covers it.
         const s0 = get();
         const blockers = Object.values(s0.windows)

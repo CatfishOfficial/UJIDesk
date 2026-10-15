@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useWorkspace } from '../../state/store';
 import { useUI } from '../../state/ui';
+import { currentScale } from '../../state/scale';
 import { PixelIcon } from '../ui/pixel-icons/PixelIcon';
 import { BUTTON, DEFAULT_POS, buttonXY, cornerOf, cornerPos, snapToEdge } from './geometry';
 
@@ -47,13 +48,16 @@ export function BackpackButton() {
       onPointerMove={(e) => {
         const d = g.current;
         if (!d) return;
-        const dx = e.clientX - d.px;
-        const dy = e.clientY - d.py;
-        if (!d.moved && Math.hypot(dx, dy) < 6) return;
+        // Threshold stays in real screen px (how far the pointer physically moved);
+        // the position itself is logical, since it's rendered through the page zoom.
+        const rdx = e.clientX - d.px;
+        const rdy = e.clientY - d.py;
+        if (!d.moved && Math.hypot(rdx, rdy) < 6) return;
         d.moved = true;
+        const scale = currentScale();
         setDrag({
-          x: Math.min(Math.max(d.x + dx, 0), window.innerWidth - BUTTON),
-          y: Math.min(Math.max(d.y + dy, 0), window.innerHeight - BUTTON),
+          x: Math.min(Math.max(d.x + rdx / scale, 0), window.innerWidth / scale - BUTTON),
+          y: Math.min(Math.max(d.y + rdy / scale, 0), window.innerHeight / scale - BUTTON),
         });
       }}
       onPointerUp={(e) => {
@@ -61,8 +65,9 @@ export function BackpackButton() {
         g.current = null;
         if (!d) return;
         if (d.moved) {
-          const x = Math.min(Math.max(d.x + e.clientX - d.px, 0), window.innerWidth - BUTTON);
-          const y = Math.min(Math.max(d.y + e.clientY - d.py, 0), window.innerHeight - BUTTON);
+          const scale = currentScale();
+          const x = Math.min(Math.max(d.x + (e.clientX - d.px) / scale, 0), window.innerWidth / scale - BUTTON);
+          const y = Math.min(Math.max(d.y + (e.clientY - d.py) / scale, 0), window.innerHeight / scale - BUTTON);
           setSettings({ backpackPos: snapToEdge(x + BUTTON / 2, y + BUTTON / 2) });
           setDrag(null);
           // Swallow the click that follows a drag (if the browser sends one).

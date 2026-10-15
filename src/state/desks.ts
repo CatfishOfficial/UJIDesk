@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { uid, useWorkspace } from './store';
 import { useUI } from './ui';
+import { viewport } from './placement';
 import type { AssistMode, PlacedSticker, Stroke, Win } from './types';
 
 /**
@@ -76,13 +77,14 @@ const commit = (desks: SavedDesk[]) => {
 
 export function snapshotBoard(): DeskSnapshot {
   const s = useWorkspace.getState();
+  const { vw, vh } = viewport();
   return {
     windows: s.windows,
     zTop: s.zTop,
     strokes: s.strokes,
     stickers: s.stickers,
     mode: s.mode,
-    viewport: { w: typeof window === 'undefined' ? 1280 : window.innerWidth, h: typeof window === 'undefined' ? 800 : window.innerHeight },
+    viewport: { w: vw, h: vh },
   };
 }
 

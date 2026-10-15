@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Delete } from 'lucide-react';
 import { useWindowData, useWorkspace, uid } from '../../state/store';
 import { useUI } from '../../state/ui';
+import { currentScale } from '../../state/scale';
 import { evaluate, formatNumber, parseExpression, type AngleMode } from '../../math/expression';
 import { parseLinearExpression } from '../../math/linear';
 import { InventoryGrid } from '../ui/InventoryGrid';
@@ -126,7 +127,7 @@ export function CalculatorTool({ winId }: { winId: string }) {
     update({ model: id });
     // Bigger keypads need more room; never shrink what the student sized.
     const size = MODEL_SIZE[id];
-    if (win) setRect(winId, { w: Math.max(win.w, size.w), h: Math.max(win.h, Math.min(size.h, window.innerHeight - 40)) });
+    if (win) setRect(winId, { w: Math.max(win.w, size.w), h: Math.max(win.h, Math.min(size.h, window.innerHeight / currentScale() - 40)) });
     setPicking(false);
   };
   const deviceAngle = model === 'graphing' ? (data.g?.angle ?? 'rad') : model === 'exam' ? (data.e?.angle ?? 'deg') : angle;

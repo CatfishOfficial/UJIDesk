@@ -1,4 +1,5 @@
 import type { EdgePosition, ScreenEdge } from '../../state/types';
+import { currentScale } from '../../state/scale';
 
 export const BUTTON = 48;
 export const EDGE_GAP = 14;
@@ -6,8 +7,12 @@ const CORNER_PULL = 90;
 
 export const DEFAULT_POS: EdgePosition = { edge: 'bottom', t: 0 };
 
+/** Logical (unscaled) viewport width/height, for these functions' defaults. */
+const logicalVW = () => window.innerWidth / currentScale();
+const logicalVH = () => window.innerHeight / currentScale();
+
 /** Top-left of the button for a stored edge position. */
-export function buttonXY(pos: EdgePosition, vw = window.innerWidth, vh = window.innerHeight): { x: number; y: number } {
+export function buttonXY(pos: EdgePosition, vw = logicalVW(), vh = logicalVH()): { x: number; y: number } {
   const t = Math.min(1, Math.max(0, pos.t));
   const spanX = vw - BUTTON - EDGE_GAP * 2;
   const spanY = vh - BUTTON - EDGE_GAP * 2;
@@ -24,7 +29,7 @@ export function buttonXY(pos: EdgePosition, vw = window.innerWidth, vh = window.
 }
 
 /** Snaps a free drop point (button centre) to the nearest screen edge, pulling into corners. */
-export function snapToEdge(cx: number, cy: number, vw = window.innerWidth, vh = window.innerHeight): EdgePosition {
+export function snapToEdge(cx: number, cy: number, vw = logicalVW(), vh = logicalVH()): EdgePosition {
   const d: [ScreenEdge, number][] = [
     ['left', cx],
     ['right', vw - cx],
@@ -42,7 +47,7 @@ export function snapToEdge(cx: number, cy: number, vw = window.innerWidth, vh = 
 }
 
 /** Which corner the button is nearest, for keyboard nudging. */
-export function cornerOf(pos: EdgePosition, vw = window.innerWidth, vh = window.innerHeight) {
+export function cornerOf(pos: EdgePosition, vw = logicalVW(), vh = logicalVH()) {
   const { x, y } = buttonXY(pos, vw, vh);
   return { left: x + BUTTON / 2 < vw / 2, top: y + BUTTON / 2 < vh / 2 };
 }

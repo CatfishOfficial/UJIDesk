@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as RPointerEvent, type ReactNode } from 'react';
 import { Search } from 'lucide-react';
+import { currentScale } from '../../state/scale';
 
 /**
  * One inventory vocabulary for every collection in UJI: the backpack, the math
@@ -200,7 +201,11 @@ function InventorySlot({
       d.ghost = ghost;
       document.body.classList.add('is-placing');
     }
-    if (d.ghost) d.ghost.style.transform = `translate(${e.clientX - 22}px, ${e.clientY - 22}px)`;
+    // The ghost renders through the page zoom, so its translate needs logical px to track the real cursor.
+    if (d.ghost) {
+      const scale = currentScale();
+      d.ghost.style.transform = `translate(${(e.clientX - 22) / scale}px, ${(e.clientY - 22) / scale}px)`;
+    }
   };
   const onPointerUp = (e: RPointerEvent<HTMLButtonElement>) => {
     const d = drag.current;

@@ -1,5 +1,6 @@
 import { useWorkspace, uid } from '../../state/store';
 import { useUI } from '../../state/ui';
+import { currentScale } from '../../state/scale';
 import type { WindowType } from '../../state/types';
 import { clearedForGuide } from './calc/clear';
 
@@ -65,7 +66,7 @@ export function openHelper(fromWindowId: string, type: WindowType, calc?: string
     const expanded = !useWorkspace.getState().guideSeen.includes(model);
     // The strip needs room; grow the window once rather than squeezing the keypad.
     if (win && !win.data.guide && !win.maximized) {
-      const room = window.innerHeight - win.y - 16;
+      const room = window.innerHeight / currentScale() - win.y - 16;
       if (room > win.h) ws.setRect(id, { h: Math.min(room, win.h + (expanded ? 104 : 48)) });
     }
     // Start from a clean screen every time, so the directions match what's showing.

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Circle, Eraser, Highlighter, Minus as LineIcon, PenLine, Redo2, Square, Undo2, Wand2, Check, Trash2 } from 'lucide-react';
 import { useWorkspace, uid } from '../../state/store';
 import { useUI, type DrawTool } from '../../state/ui';
+import { currentScale } from '../../state/scale';
 import type { Stroke } from '../../state/types';
 import { INKS, freehandPath, strokeHit } from './ink';
 import { recognizeShape } from './recognize';
@@ -102,8 +103,10 @@ export function DrawingSurface() {
   const onDown = (e: React.PointerEvent) => {
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    const x = e.clientX;
-    const y = e.clientY;
+    // Strokes render through the page zoom, so points are stored logical.
+    const scale = currentScale();
+    const x = e.clientX / scale;
+    const y = e.clientY / scale;
     if (tool === 'eraser') {
       erasing.current = { before: strokes, removed: false };
       eraseAt(x, y);
@@ -125,14 +128,15 @@ export function DrawingSurface() {
   };
 
   const onMove = (e: React.PointerEvent) => {
+    const scale = currentScale();
     if (tool === 'eraser') {
-      if (erasing.current) eraseAt(e.clientX, e.clientY);
+      if (erasing.current) eraseAt(e.clientX / scale, e.clientY / scale);
       return;
     }
     const s = liveRef.current;
     if (!s) return;
-    const x = e.clientX;
-    const y = e.clientY;
+    const x = e.clientX / scale;
+    const y = e.clientY / scale;
     let next: Stroke;
     if (s.tool === 'pen' || s.tool === 'highlighter') {
       next = { ...s, pts: [...s.pts, x, y, e.pressure || 0.5] };

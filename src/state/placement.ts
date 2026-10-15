@@ -1,4 +1,5 @@
 import type { Win } from './types';
+import { currentScale } from './scale';
 
 /** Space kept clear at the bottom edge when placing windows. */
 export const DOCK_SPACE = 20;
@@ -11,9 +12,11 @@ export interface Rect {
   h: number;
 }
 
+/** The viewport in logical pixels — real pixels divided by the Display size scale (see ./scale). */
 export function viewport(): { vw: number; vh: number } {
   if (typeof window === 'undefined') return { vw: 1280, vh: 800 };
-  return { vw: window.innerWidth, vh: window.innerHeight };
+  const scale = currentScale();
+  return { vw: window.innerWidth / scale, vh: window.innerHeight / scale };
 }
 
 function overlap(a: Rect, b: Rect): number {

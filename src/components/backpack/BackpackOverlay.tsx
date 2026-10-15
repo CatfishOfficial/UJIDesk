@@ -6,14 +6,16 @@ import { PixelIcon, type PixelIconName } from '../ui/pixel-icons/PixelIcon';
 import { RecognitionDialog } from '../tools/problem/RecognitionDialog';
 import { detectProblem } from '../../math/detect';
 import { BUTTON, DEFAULT_POS, buttonXY } from './geometry';
+import { currentScale } from '../../state/scale';
 import type { EdgePosition } from '../../state/types';
 import { ArcadeView, CatalogView, HomeView, SettingsView, StickersView, StuffView } from './views';
 import { DesksView } from './DesksView';
 
 /** Opens toward the middle of the screen from wherever the button sits. */
 function panelStyle(pos: EdgePosition, panelH: number): CSSProperties {
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
+  const scale = currentScale();
+  const vw = window.innerWidth / scale;
+  const vh = window.innerHeight / scale;
   const { x, y } = buttonXY(pos, vw, vh);
   const gap = 10;
   const s: CSSProperties = {};
