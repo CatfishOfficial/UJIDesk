@@ -3783,3 +3783,32 @@ p.problem-error {
 :root[data-motion='reduced'] .calc-guide.is-done {
   animation: none;
 }
+
+/* New subject stickers on the practice summary */
+.chal-stickers {
+  align-self: stretch;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: var(--accent-soft);
+}
+.chal-stickers ul {
+  list-style: none;
+  margin: 6px 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+.chal-stickers li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.chal-stickers .muted {
+  margin: 0;
+}

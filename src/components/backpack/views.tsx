@@ -237,7 +237,7 @@ export function StuffView() {
     const has = progress.stickersEarned.includes(s.kind);
     return {
       id: s.kind,
-      name: has ? s.name : '???',
+      name: has || s.subject ? s.name : '???',
       description: has ? s.description : s.earn,
       icon: <span className={has ? '' : 'sticker-locked'}>{s.render(32)}</span>,
       status: has ? 'ready' : 'locked',
@@ -440,7 +440,8 @@ export function StickersView({ compact }: { compact: boolean }) {
         const locked = !!s.earn && !earned.includes(s.kind);
         return {
           id: s.kind,
-          name: locked ? '???' : s.name,
+          category: s.subject ? 'Subjects' : s.earn ? 'Earned' : 'Sticker sheet',
+          name: locked && !s.subject ? '???' : s.name,
           description: locked ? s.earn : s.description,
           tip: locked ? `Earn it: ${s.earn}` : s.description,
           icon: <span className={locked ? 'sticker-locked' : ''}>{s.render(44)}</span>,
@@ -457,6 +458,7 @@ export function StickersView({ compact }: { compact: boolean }) {
       <InventoryGrid
         items={items}
         variant="slots"
+        sections
         label="Sticker sheet"
         autoFocus
         onActivate={(i) => {

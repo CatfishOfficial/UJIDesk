@@ -62,6 +62,8 @@ export interface WorkspaceState {
   recordSolve: () => void;
   finishSet: () => void;
   earnSticker: (kind: string) => void;
+  /** Earns several stickers with one message; returns the ones that were new. */
+  earnStickers: (kinds: string[]) => string[];
   selectFish: (id: string) => void;
   setNudge: (on: boolean) => void;
 
@@ -324,6 +326,17 @@ export const useWorkspace = create<WorkspaceState>()(
         if (get().progress.stickersEarned.includes(kind)) return;
         set((s) => ({ progress: { ...s.progress, stickersEarned: [...s.progress.stickersEarned, kind] } }));
         useUI.getState().toast(`New sticker: ${STICKER_BY_KIND[kind]?.name ?? 'something shiny'}. It's in your backpack.`);
+      },
+
+      earnStickers: (kinds) => {
+        const have = get().progress.stickersEarned;
+        const fresh = [...new Set(kinds)].filter((k) => !have.includes(k) && STICKER_BY_KIND[k]);
+        if (!fresh.length) return [];
+        set((s) => ({ progress: { ...s.progress, stickersEarned: [...s.progress.stickersEarned, ...fresh] } }));
+        const names = fresh.map((k) => STICKER_BY_KIND[k].name);
+        const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0];
+        useUI.getState().toast(`New sticker${fresh.length > 1 ? 's' : ''}: ${list}. ${fresh.length > 1 ? 'They’re' : 'It’s'} in your backpack.`);
+        return fresh;
       },
 
       selectFish: (id) => set((s) => ({ progress: { ...s.progress, fishSelected: id } })),

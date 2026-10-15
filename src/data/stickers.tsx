@@ -1,5 +1,6 @@
 import { Pixel, stamp, withOutline, type Palette } from './pixel';
 import { FISH_BY_ID, FISH_ROWS, FISH_TAIL_A, FISH_TAIL_Y, STICKER_FISH } from './fish';
+import { iconRows, PALETTE as ICON_PALETTE, type PixelIconName } from '../components/ui/pixel-icons/PixelIcon';
 
 export interface StickerDef {
   kind: string;
@@ -7,6 +8,8 @@ export interface StickerDef {
   description: string;
   /** How it's earned; undefined means it's in the starter sheet. */
   earn?: string;
+  /** A practice-topic sticker. */
+  subject?: boolean;
   render: (size: number) => JSX.Element;
 }
 
@@ -160,5 +163,45 @@ export const STICKERS: StickerDef[] = [
     render: sticker(BASS_ROWS, { ...FISH_BY_ID.basspro.palette, W: '#5b3a1a', w: '#a86f3c', g: '#e7c35a' }),
   },
 ];
+
+/** Drops empty rows and columns so the die-cut edge hugs the art. */
+function trim(rows: string[]): string[] {
+  const filled = (c: string) => c !== '.';
+  const ys = rows.map((r, y) => ([...r].some(filled) ? y : -1)).filter((y) => y >= 0);
+  const xs = rows.flatMap((r) => [...r].map((c, x) => (filled(c) ? x : -1)).filter((x) => x >= 0));
+  const [x0, x1] = [Math.min(...xs), Math.max(...xs)];
+  return rows.slice(ys[0], ys[ys.length - 1] + 1).map((r) => r.slice(x0, x1 + 1));
+}
+
+/**
+ * One sticker per practice topic, made from that tool's icon. Earned the first
+ * time a practice set with that topic is finished (see `subjectStickersFor`).
+ */
+export const SUBJECT_STICKERS: { topic: string; icon: PixelIconName; name: string; description: string }[] = [
+  { topic: 'slope', icon: 'slopeFromPoints', name: 'Slope', description: 'Rise over run, framed. Steep in all the right ways.' },
+  { topic: 'standard', icon: 'standardToSlope', name: 'Standard form', description: 'Ax + By = C, rearranged into something readable.' },
+  { topic: 'pointSlope', icon: 'pointSlope', name: 'Point-slope', description: 'One point, one slope, one very specific line.' },
+  { topic: 'systems', icon: 'systems', name: 'Systems', description: 'Two lines met here. It was meant to be.' },
+  { topic: 'quadratic', icon: 'quadratic', name: 'Quadratics', description: 'Negative b, plus or minus, sung to the usual tune.' },
+  { topic: 'factoring', icon: 'factoring', name: 'Factoring', description: 'Un-multiplied, carefully, with receipts.' },
+  { topic: 'pythag', icon: 'pythag', name: 'Pythagorean', description: 'a² + b² = c², and a little triangle pride.' },
+  { topic: 'area', icon: 'area', name: 'Area', description: 'Measured the inside. Respected the edges.' },
+  { topic: 'trig', icon: 'trig', name: 'Trig', description: 'SOH CAH TOA, officially certified.' },
+  { topic: 'stats', icon: 'stats', name: 'Statistics', description: 'Mean, median, mode, and a very calm range.' },
+  { topic: 'sequences', icon: 'sums', name: 'Sequences', description: 'Saw the pattern coming from a mile off.' },
+];
+
+export const subjectStickerKind = (topic: string) => `subject-${topic}`;
+
+STICKERS.push(
+  ...SUBJECT_STICKERS.map((s) => ({
+    kind: subjectStickerKind(s.topic),
+    name: s.name,
+    description: s.description,
+    earn: `Finish a practice set with ${s.name.toLowerCase()} problems in it.`,
+    subject: true,
+    render: sticker(trim(iconRows(s.icon)), ICON_PALETTE),
+  })),
+);
 
 export const STICKER_BY_KIND = Object.fromEntries(STICKERS.map((s) => [s.kind, s]));

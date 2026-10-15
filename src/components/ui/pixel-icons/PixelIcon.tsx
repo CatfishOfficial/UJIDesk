@@ -8,7 +8,7 @@ import { pixelRects } from '../../../data/pixel';
  * Placeholder art for development; swap any icon by replacing its draw fn.
  */
 
-const PALETTE: Record<string, string> = {
+export const PALETTE: Record<string, string> = {
   K: '#2a2932', // outline
   W: '#ffffff',
   w: '#f7f5ee', // paper
@@ -585,7 +585,8 @@ const DRAW = {
 export type PixelIconName = keyof typeof DRAW;
 
 const CACHE = new Map<string, string[]>();
-function iconRows(name: PixelIconName): string[] {
+/** An icon's 16×16 pixel rows (outline included), for reuse as sticker art. */
+export function iconRows(name: PixelIconName): string[] {
   let rows = CACHE.get(name);
   if (!rows) {
     const c = new Canvas();

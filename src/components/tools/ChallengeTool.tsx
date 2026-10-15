@@ -9,6 +9,7 @@ import {
   generateSet,
   pointsFor,
   problemPrompt,
+  subjectStickersFor,
   TOPIC_LABEL,
   type ChallengeCheck,
   type ChallengeMix,
@@ -26,6 +27,7 @@ import { SIDE_NAME, type TrigSide } from '../../math/trig';
 import { parseNumberList } from '../../math/surd';
 import { aSub } from '../../math/sequences';
 import { toPlain } from '../../math/markup';
+import { STICKER_BY_KIND, subjectStickerKind } from '../../data/stickers';
 import { MathView, RichText } from '../ui/MathView';
 import { HandCheck, HandUnderline } from '../ui/HandDrawn';
 
@@ -33,6 +35,7 @@ interface Result {
   points: number;
   firstTry: boolean;
   skipped?: boolean;
+  topic?: ChallengeProblem['topic'];
 }
 
 interface ChallengeData extends Record<string, unknown> {
@@ -49,6 +52,8 @@ interface ChallengeData extends Record<string, unknown> {
   check?: ChallengeCheck | null;
   solved?: boolean;
   results?: Result[];
+  /** Subject stickers earned by finishing this set, for the summary. */
+  newStickers?: string[];
 }
 
 const MIXES: { id: ChallengeMix; label: string }[] = [{ id: 'mixed', label: 'Mixed' }, ...ALL_TOPICS.map((t) => ({ id: t, label: TOPIC_LABEL[t] }))];
@@ -76,6 +81,7 @@ export function ChallengeTool({ winId }: { winId: string }) {
   const addTokens = useWorkspace((s) => s.addTokens);
   const recordSolve = useWorkspace((s) => s.recordSolve);
   const finishSet = useWorkspace((s) => s.finishSet);
+  const earnStickers = useWorkspace((s) => s.earnStickers);
   const totalPoints = useWorkspace((s) => s.progress.tokens);
 
   const problems = useMemo<ChallengeProblem[]>(
@@ -113,8 +119,22 @@ export function ChallengeTool({ winId }: { winId: string }) {
           {firstTry} of {results.length} on the first try. <strong>+{earned}</strong> tokens.
         </p>
         <p className="hand chal-note">{firstTry === results.length ? 'Clean sweep. Very tidy.' : 'Every attempt counted. Nothing was lost.'}</p>
+        {(d.newStickers?.length ?? 0) > 0 && (
+          <div className="chal-stickers" aria-label="New stickers">
+            <div className="lesson-label">New sticker{d.newStickers!.length > 1 ? 's' : ''}</div>
+            <ul>
+              {d.newStickers!.map((k) => (
+                <li key={k} title={STICKER_BY_KIND[k]?.description}>
+                  {STICKER_BY_KIND[k]?.render(48)}
+                  <span>{STICKER_BY_KIND[k]?.name}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="muted small">They’re in your backpack, under Stickers.</p>
+          </div>
+        )}
         <div className="chal-actions">
-          <button type="button" className="btn btn-primary" onClick={() => start(d.custom)}>
+          <button type="button" className="btn btn-primary" onClick={() => (update({ newStickers: [] }), start(d.custom))}>
             <RotateCcw size={14} /> Another set
           </button>
           <button type="button" className="btn btn-quiet" onClick={() => update({ phase: 'setup' })}>
@@ -138,12 +158,13 @@ export function ChallengeTool({ winId }: { winId: string }) {
       onSolved={(pts, firstTry) => {
         addTokens(pts);
         recordSolve();
-        update((cur) => ({ solved: true, results: [...(cur.results ?? []), { points: pts, firstTry }] }));
+        update((cur) => ({ solved: true, results: [...(cur.results ?? []), { points: pts, firstTry, topic: problem.topic }] }));
       }}
       onNext={(skipped) => {
         const results = skipped ? [...(d.results ?? []), { points: 0, firstTry: false, skipped: true }] : d.results ?? [];
         if (index + 1 >= problems.length) {
-          update({ phase: 'summary', results });
+          const fresh = earnStickers(subjectStickersFor(results, !!d.custom).map(subjectStickerKind));
+          update({ phase: 'summary', results, newStickers: fresh });
           finishSet();
         } else {
           update({ index: index + 1, answers: {}, attempts: 0, hints: 0, check: null, solved: false, results });

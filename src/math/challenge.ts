@@ -204,6 +204,16 @@ export function challengeHints(p: ChallengeProblem): string[] {
   ];
 }
 
+/**
+ * Finishing a practice set earns the sticker for every topic answered
+ * correctly at least once in it. Your own problems don't count (like tokens),
+ * so stickers come from generated practice.
+ */
+export function subjectStickersFor(results: { topic?: ChallengeTopic; skipped?: boolean }[], custom: boolean): ChallengeTopic[] {
+  if (custom) return [];
+  return [...new Set(results.filter((r) => r.topic && !r.skipped).map((r) => r.topic!))];
+}
+
 export function pointsFor(hintsUsed: number, attempts: number): number {
   if (hintsUsed === 0 && attempts <= 1) return 10;
   if (hintsUsed <= 1) return 6;
