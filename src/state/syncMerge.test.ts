@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mergeBoard, mergeDesks, mergeFlags, mergeProgress, mergeSettings, same, type Board } from './syncMerge';
+import { mergeBoard, mergeFlags, mergeProgress, mergeSaved, mergeSettings, same, type Board } from './syncMerge';
 import type { Progress, Settings } from './types';
 import type { SavedDesk } from './desks';
 
@@ -52,8 +52,8 @@ describe('a brand-new account takes everything already on the device', () => {
   });
 
   it('saved desks, all uploaded', () => {
-    const r = mergeDesks({}, [desk('d1', 5), desk('d2', 6)], []);
-    expect(r.desks.map((d) => d.id)).toEqual(['d1', 'd2']);
+    const r = mergeSaved({}, [desk('d1', 5), desk('d2', 6)], []);
+    expect(r.items.map((d) => d.id)).toEqual(['d1', 'd2']);
     expect(r.upload.map((d) => d.id)).toEqual(['d1', 'd2']);
     expect(r.remove).toEqual([]);
   });
@@ -109,9 +109,9 @@ describe('two signed-in devices', () => {
     const base = { kept: 5, renamedThere: 5, deletedHere: 5, deletedThere: 5 };
     const local = [desk('kept', 5), desk('renamedThere', 5), desk('deletedThere', 5), desk('newHere', 9)];
     const cloud = [desk('kept', 5), desk('renamedThere', 8, 'Algebra'), desk('deletedHere', 5), desk('newThere', 9)];
-    const r = mergeDesks(base, local, cloud);
-    expect(r.desks.map((d) => d.id)).toEqual(['kept', 'renamedThere', 'newHere', 'newThere']);
-    expect(r.desks.find((d) => d.id === 'renamedThere')?.name).toBe('Algebra');
+    const r = mergeSaved(base, local, cloud);
+    expect(r.items.map((d) => d.id)).toEqual(['kept', 'renamedThere', 'newHere', 'newThere']);
+    expect(r.items.find((d) => d.id === 'renamedThere')?.name).toBe('Algebra');
     expect(r.upload.map((d) => d.id)).toEqual(['newHere']);
     expect(r.remove).toEqual(['deletedHere']);
   });
@@ -157,9 +157,9 @@ describe('a copy that went through the account unchanged', () => {
 
   it('leaves an unchanged desk alone', () => {
     const d = desk('d1', 5);
-    const r = mergeDesks({ d1: 5 }, [d], [jsonbOrder(d) as SavedDesk]);
+    const r = mergeSaved({ d1: 5 }, [d], [jsonbOrder(d) as SavedDesk]);
     expect(r.upload).toEqual([]);
     expect(r.remove).toEqual([]);
-    expect(r.desks).toHaveLength(1);
+    expect(r.items).toHaveLength(1);
   });
 });

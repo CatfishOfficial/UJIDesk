@@ -1,26 +1,25 @@
 import { useRef, useState } from 'react';
-import { Eraser, PenLine, Type, Trash2 } from 'lucide-react';
+import { Check, Eraser, FolderOpen, PenLine, Save, Type, Trash2 } from 'lucide-react';
 import { useWindowData, uid } from '../../state/store';
 import { useUI } from '../../state/ui';
+import { pageIsEmpty, samePage, saveNote, useNotes, type PadStroke } from '../../state/notes';
 import { INKS, freehandPath, strokeHit } from '../drawing/ink';
-
-interface PadStroke {
-  id: string;
-  color: string;
-  pts: number[];
-}
 
 interface PadData extends Record<string, unknown> {
   text: string;
   strokes: PadStroke[];
   mode: 'type' | 'pen' | 'eraser';
   color?: string;
+  /** The saved note this page was opened from or last saved to (see state/notes.ts). */
+  noteId?: string;
 }
 
-/** Lined paper you can type on or sketch on. Clearing is separate from closing. */
+/** Lined paper you can type on or sketch on, and save as a note to open again later. Clearing is separate from closing. */
 export function ScratchpadTool({ winId }: { winId: string }) {
   const [data, update] = useWindowData<PadData>(winId);
   const toast = useUI((s) => s.toast);
+  const setBackpack = useUI((s) => s.setBackpack);
+  const note = useNotes((s) => (data.noteId ? s.notes.find((n) => n.id === data.noteId) : undefined));
   const [live, setLive] = useState<number[] | null>(null);
   const liveRef = useRef<number[] | null>(null);
   const surface = useRef<HTMLDivElement>(null);
@@ -42,6 +41,17 @@ export function ScratchpadTool({ winId }: { winId: string }) {
     const before = { text: data.text, strokes };
     update({ text: '', strokes: [] });
     toast('Page cleared.', { label: 'Undo', run: () => update(before) });
+  };
+
+  const page = { text: data.text ?? '', strokes };
+  const saved = !!note && samePage(note, page);
+  const save = () => {
+    const el = surface.current;
+    // The page's size goes with it, so a preview wraps the text and places the ink as they were here.
+    const size = { w: el?.clientWidth ?? 380, h: Math.max(el?.scrollHeight ?? 0, el?.clientHeight ?? 0) };
+    const n = saveNote({ ...page, size, noteId: data.noteId });
+    if (n.id !== data.noteId) update({ noteId: n.id });
+    toast(`Saved “${n.name}”.`, { label: 'See notes', run: () => setBackpack(true, 'notes') });
   };
 
   return (
@@ -74,7 +84,31 @@ export function ScratchpadTool({ winId }: { winId: string }) {
             ))}
           </div>
         )}
-        <span style={{ flex: 1 }} />
+        <span className="pad-note" title={note ? `Saved note: ${note.name}` : undefined}>
+          {note && (
+            <>
+              <span className="pad-note-name">{note.name}</span>
+              {!saved && (
+                <span className="pad-note-dot" aria-label="(unsaved changes)">
+                  •
+                </span>
+              )}
+            </>
+          )}
+        </span>
+        <button
+          type="button"
+          className="btn btn-quiet btn-sm btn-icon"
+          onClick={save}
+          disabled={saved || pageIsEmpty(page)}
+          aria-label={saved ? 'Saved' : note ? `Save changes to ${note.name}` : 'Save as a note'}
+          title={saved ? 'Saved' : note ? `Save changes to “${note.name}”` : 'Save this page as a note'}
+        >
+          {saved ? <Check size={14} /> : <Save size={14} />}
+        </button>
+        <button type="button" className="btn btn-quiet btn-sm btn-icon" onClick={() => setBackpack(true, 'notes')} aria-label="Saved notes" title="Saved notes">
+          <FolderOpen size={14} />
+        </button>
         <button type="button" className="btn btn-quiet btn-sm btn-icon" onClick={clear} disabled={!data.text && !strokes.length} aria-label="Clear this page" title="Clear page (you can undo)">
           <Trash2 size={14} />
         </button>

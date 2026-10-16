@@ -9,6 +9,7 @@ import { BUTTON, DEFAULT_POS, buttonXY } from './geometry';
 import type { EdgePosition } from '../../state/types';
 import { ArcadeView, CatalogView, HomeView, SettingsView, StickersView, StuffView } from './views';
 import { DesksView } from './DesksView';
+import { NotesView } from './NotesView';
 
 /** Opens toward the middle of the screen from wherever the button sits. */
 function panelStyle(pos: EdgePosition, panelH: number, uiScale: number): CSSProperties {
@@ -45,6 +46,7 @@ const BAR: { id: BagView | 'challenge' | 'trip'; icon: PixelIconName; label: str
   { id: 'home', icon: 'backpack', label: 'Backpack' },
   { id: 'catalog', icon: 'mathTools', label: 'Math tools (Ctrl+K)' },
   { id: 'desks', icon: 'desks', label: 'Desks' },
+  { id: 'notes', icon: 'scratchpad', label: 'Notes' },
   { id: 'challenge', icon: 'challenge', label: 'Challenge practice' },
   { id: 'trip', icon: 'boat', label: 'Trip on da Ship' },
   { id: 'arcade', icon: 'arcade', label: 'Arcade' },
@@ -169,6 +171,7 @@ export function BackpackOverlay({ compact }: { compact: boolean }) {
           {view === 'home' && <HomeView compact={compact} nudged={nudged} onImport={() => setImporting(true)} />}
           {view === 'catalog' && <CatalogView />}
           {view === 'desks' && <DesksView />}
+          {view === 'notes' && <NotesView />}
           {view === 'arcade' && <ArcadeView />}
           {view === 'stuff' && <StuffView />}
           {view === 'settings' && <SettingsView />}

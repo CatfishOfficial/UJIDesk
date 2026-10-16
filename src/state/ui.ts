@@ -10,7 +10,7 @@ export interface Toast {
 }
 
 export type DrawTool = StrokeTool | 'eraser';
-export type BagView = 'home' | 'catalog' | 'desks' | 'arcade' | 'stuff' | 'settings' | 'stickers';
+export type BagView = 'home' | 'catalog' | 'desks' | 'notes' | 'arcade' | 'stuff' | 'settings' | 'stickers';
 
 interface UIState {
   backpackOpen: boolean;

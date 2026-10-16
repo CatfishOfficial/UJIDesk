@@ -7,7 +7,7 @@ import { TOOLS } from '../../data/tools';
 import { TOOL_ICONS } from '../ui/icons';
 import { ContextMenu, MenuItem, MenuSeparator } from '../ui/ContextMenu';
 
-function ago(ts: number): string {
+export function ago(ts: number): string {
   const s = Math.round((Date.now() - ts) / 1000);
   if (s < 45) return 'just now';
   const m = Math.round(s / 60);

@@ -1,5 +1,4 @@
 import type { AssistMode, PlacedSticker, Progress, RecentProblem, Settings, Stroke, Win } from './types';
-import type { SavedDesk } from './desks';
 
 /**
  * The pure half of account sync: three-way merges between what this device
@@ -108,15 +107,15 @@ export function mergeBoard(base: Board | null, local: Board, cloud: Board | null
 }
 
 /**
- * Desk by desk. Both have it: the newer save wins. Only one has it: kept if
- * it's new since the last sync, dropped if the other side deleted it.
- * `base` maps each desk id to its updatedAt as of the last sync.
+ * Saved things (desks, notes), one by one. Both have it: the newer save wins.
+ * Only one has it: kept if it's new since the last sync, dropped if the other
+ * side deleted it. `base` maps each id to its updatedAt as of the last sync.
  */
-export function mergeDesks(base: Record<string, number>, local: SavedDesk[], cloud: SavedDesk[]): { desks: SavedDesk[]; upload: SavedDesk[]; remove: string[] } {
+export function mergeSaved<T extends { id: string; updatedAt: number }>(base: Record<string, number>, local: T[], cloud: T[]): { items: T[]; upload: T[]; remove: string[] } {
   const L = new Map(local.map((d) => [d.id, d]));
   const C = new Map(cloud.map((d) => [d.id, d]));
-  const desks: SavedDesk[] = [];
-  const upload: SavedDesk[] = [];
+  const items: T[] = [];
+  const upload: T[] = [];
   const remove: string[] = [];
   // Local order first (it's what the student sees), then desks only the account has.
   for (const id of [...L.keys(), ...[...C.keys()].filter((k) => !L.has(k))]) {
@@ -125,16 +124,16 @@ export function mergeDesks(base: Record<string, number>, local: SavedDesk[], clo
     const synced = id in base;
     if (l && c) {
       const winner = l.updatedAt > c.updatedAt ? l : c;
-      desks.push(winner);
+      items.push(winner);
       if (winner === l && !same(l, c)) upload.push(l);
     } else if (l) {
       if (synced) continue; // deleted on another device
-      desks.push(l);
+      items.push(l);
       upload.push(l);
     } else if (c) {
       if (synced) remove.push(id); // deleted on this device
-      else desks.push(c);
+      else items.push(c);
     }
   }
-  return { desks, upload, remove };
+  return { items, upload, remove };
 }

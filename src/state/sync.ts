@@ -1,10 +1,11 @@
 import { supabase } from './supabase';
 import { initialProgress, initialSettings, uid, useWorkspace, type WorkspaceState } from './store';
 import { localDeskStorage, replaceDesks, useDesks, type DeskSnapshot, type SavedDesk } from './desks';
+import { localNoteStorage, replaceNotes, useNotes, type PadStroke, type SavedNote } from './notes';
 import { signOut, useAccount } from './account';
 import { useUI } from './ui';
 import { viewport } from './placement';
-import { boardHasContent, mergeBoard, mergeDesks, mergeFlags, mergeProgress, mergeSettings, same, type Board, type Flags } from './syncMerge';
+import { boardHasContent, mergeBoard, mergeFlags, mergeProgress, mergeSaved, mergeSettings, same, type Board, type Flags } from './syncMerge';
 import type { Progress, Settings } from './types';
 
 /**
@@ -29,8 +30,9 @@ interface SyncRecord {
   /** The account row's version when this device was last in step. */
   rev: number;
   base: Payload;
-  /** Each synced desk's updatedAt as of then. */
+  /** Each synced desk's and note's updatedAt as of then. */
   desks: Record<string, number>;
+  notes?: Record<string, number>;
 }
 
 interface StateRow {
@@ -45,6 +47,14 @@ interface DeskRow {
   id: string;
   name: string;
   snapshot: DeskSnapshot;
+  created_at: string;
+  updated_at: string;
+}
+
+interface NoteRow {
+  id: string;
+  name: string;
+  body: { text?: string; strokes?: PadStroke[]; size?: { w: number; h: number } } | null;
   created_at: string;
   updated_at: string;
 }
@@ -105,6 +115,32 @@ const toDeskRow = (userId: string, d: SavedDesk) => ({
   updated_at: new Date(d.updatedAt).toISOString(),
 });
 
+const toNote = (r: NoteRow): SavedNote => ({
+  id: r.id,
+  name: r.name,
+  text: r.body?.text ?? '',
+  strokes: r.body?.strokes ?? [],
+  size: r.body?.size ?? { w: 380, h: 300 },
+  createdAt: Date.parse(r.created_at),
+  updatedAt: Date.parse(r.updated_at),
+});
+const toNoteRow = (userId: string, n: SavedNote) => ({
+  user_id: userId,
+  id: n.id,
+  name: n.name,
+  body: { text: n.text, strokes: n.strokes, size: n.size },
+  created_at: new Date(n.createdAt).toISOString(),
+  updated_at: new Date(n.updatedAt).toISOString(),
+});
+
+/**
+ * Notes live in their own table (supabase/migrations/0002_notes.sql). A project
+ * that hasn't added it yet answers "no such table": notes then stay on the
+ * device for this session, and everything else still syncs.
+ */
+let notesOff = false;
+const isMissingTable = (e: { code?: string } | null) => !!e && (e.code === 'PGRST205' || e.code === '42P01');
+
 /** This device's board, kept as a desk when the account already had a different one. */
 function deskFromBoard(b: Board): SavedDesk {
   const now = Date.now();
@@ -113,7 +149,7 @@ function deskFromBoard(b: Board): SavedDesk {
   return { id: uid('desk'), name: `From this device · ${day}`, createdAt: now, updatedAt: now, snapshot: { windows: b.windows, zTop: b.zTop, strokes: b.strokes, stickers: b.stickers, mode: b.mode, viewport: { w: vw, h: vh } } };
 }
 
-const hasAnything = (p: Payload, desks: SavedDesk[]) => !same(p.progress, initialProgress) || boardHasContent(p.board) || desks.length > 0;
+const hasAnything = (p: Payload, desks: SavedDesk[], notes: SavedNote[]) => !same(p.progress, initialProgress) || boardHasContent(p.board) || desks.length > 0 || notes.length > 0;
 
 /**
  * Puts a payload on screen, touching only what actually differs: reloading the
@@ -155,6 +191,7 @@ function clearDevice() {
     useWorkspace.getState().reset('everything');
     useWorkspace.setState({ deskId: null });
     replaceDesks([]);
+    replaceNotes([]);
   } finally {
     applying = false;
   }
@@ -199,6 +236,7 @@ async function syncOnce() {
   try {
     await useWorkspace.persist.rehydrate();
     useDesks.setState({ desks: localDeskStorage.read() });
+    useNotes.setState({ notes: localNoteStorage.read() });
   } finally {
     applying = false;
   }
@@ -211,20 +249,28 @@ async function syncOnce() {
   }
 
   for (let attempt = 0; attempt < 4; attempt++) {
-    const [stateRes, desksRes] = await Promise.all([
+    const [stateRes, desksRes, notesRes] = await Promise.all([
       supabase.from('user_state').select('progress, settings, board, flags, rev').eq('user_id', userId).maybeSingle(),
       supabase.from('desks').select('id, name, snapshot, created_at, updated_at').eq('user_id', userId),
+      notesOff ? null : supabase.from('notes').select('id, name, body, created_at, updated_at').eq('user_id', userId),
     ]);
     if (stateRes.error) throw stateRes.error;
     if (desksRes.error) throw desksRes.error;
+    if (notesRes?.error) {
+      if (!isMissingTable(notesRes.error)) throw notesRes.error;
+      notesOff = true;
+    }
+    const notesOn = !notesOff;
     const row = stateRes.data as StateRow | null;
     const cloud = row ? fromRow(row) : null;
     const cloudDesks = (desksRes.data as DeskRow[]).map(toDesk);
+    const cloudNotes = notesOn ? ((notesRes?.data ?? []) as NoteRow[]).map(toNote) : [];
 
     const local = currentPayload();
     const localDesks = useDesks.getState().desks;
+    const localNotes = useNotes.getState().notes;
     const base = rec?.base ?? null;
-    const carried = !rec && hasAnything(local, localDesks);
+    const carried = !rec && hasAnything(local, localDesks, localNotes);
 
     const { board, keepLocalAsDesk } = mergeBoard(base?.board ?? null, local.board, cloud?.board ?? null);
     const merged: Payload = {
@@ -233,7 +279,8 @@ async function syncOnce() {
       flags: mergeFlags(local.flags, cloud?.flags ?? EMPTY_FLAGS),
       board,
     };
-    const deskMerge = mergeDesks(rec?.desks ?? {}, keepLocalAsDesk ? [deskFromBoard(local.board), ...localDesks] : localDesks, cloudDesks);
+    const deskMerge = mergeSaved(rec?.desks ?? {}, keepLocalAsDesk ? [deskFromBoard(local.board), ...localDesks] : localDesks, cloudDesks);
+    const noteMerge = notesOn ? mergeSaved(rec?.notes ?? {}, localNotes, cloudNotes) : { items: localNotes, upload: [] as SavedNote[], remove: [] as string[] };
 
     // Save the row, but only over the version just read: if another device saved
     // in between, nothing is written and the loop pulls and merges again.
@@ -262,8 +309,17 @@ async function syncOnce() {
       const res = await supabase.from('desks').delete().eq('user_id', userId).in('id', deskMerge.remove);
       if (res.error) throw res.error;
     }
+    if (noteMerge.upload.length) {
+      const res = await supabase.from('notes').upsert(noteMerge.upload.map((n) => toNoteRow(userId, n)), { onConflict: 'user_id,id' });
+      if (res.error) throw res.error;
+    }
+    if (noteMerge.remove.length) {
+      const res = await supabase.from('notes').delete().eq('user_id', userId).in('id', noteMerge.remove);
+      if (res.error) throw res.error;
+    }
 
-    writeRecord({ userId, rev, base: merged, desks: Object.fromEntries(deskMerge.desks.map((d) => [d.id, d.updatedAt])) });
+    const stamps = (xs: { id: string; updatedAt: number }[]) => Object.fromEntries(xs.map((x) => [x.id, x.updatedAt]));
+    writeRecord({ userId, rev, base: merged, desks: stamps(deskMerge.items), notes: notesOn ? stamps(noteMerge.items) : rec?.notes ?? {} });
 
     // Anything changed on this device while the requests were out is merged in
     // rather than overwritten, and goes up on the next round.
@@ -277,15 +333,18 @@ async function syncOnce() {
           board: mergeBoard(local.board, now.board, merged.board).board,
         };
     const desksNow = useDesks.getState().desks;
-    const desksOnScreen = same(desksNow, localDesks) ? deskMerge.desks : mergeDesks(Object.fromEntries(localDesks.map((d) => [d.id, d.updatedAt])), desksNow, deskMerge.desks).desks;
+    const desksOnScreen = same(desksNow, localDesks) ? deskMerge.items : mergeSaved(stamps(localDesks), desksNow, deskMerge.items).items;
+    const notesNow = useNotes.getState().notes;
+    const notesOnScreen = same(notesNow, localNotes) ? noteMerge.items : mergeSaved(stamps(localNotes), notesNow, noteMerge.items).items;
     applying = true;
     try {
       apply(onScreen);
       if (!same(desksNow, desksOnScreen)) replaceDesks(desksOnScreen);
+      if (!same(notesNow, notesOnScreen)) replaceNotes(notesOnScreen);
     } finally {
       applying = false;
     }
-    if (!same(onScreen, merged) || !same(desksOnScreen, deskMerge.desks)) again = true;
+    if (!same(onScreen, merged) || !same(desksOnScreen, deskMerge.items) || !same(notesOnScreen, noteMerge.items)) again = true;
 
     setStatus('saved');
     if (carried) useUI.getState().toast('Everything on this device is now saved to your account.');
@@ -348,6 +407,7 @@ export function startSync() {
   });
   useWorkspace.subscribe(changed);
   useDesks.subscribe(changed);
+  useNotes.subscribe(changed);
   window.addEventListener('online', () => useAccount.getState().userId && run());
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') hiddenAt = Date.now();
@@ -372,6 +432,11 @@ export async function signOutAndClear(): Promise<void> {
   } catch (e) {
     setStatus(isOffline(e) ? 'offline' : 'error');
     return stay();
+  }
+  // Without the notes table, saved notes live only here, and clearing the device would delete them.
+  if (notesOff && useNotes.getState().notes.length) {
+    useUI.getState().toast('Your saved notes can’t be backed up to accounts yet, so signing out would delete them from this device. You’re still signed in.');
+    return;
   }
   await signOut();
   clearDevice();
