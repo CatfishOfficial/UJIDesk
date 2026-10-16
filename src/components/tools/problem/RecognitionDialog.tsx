@@ -30,6 +30,20 @@ function copyFor(kind: RecognitionKind) {
   return RECOGNIZABLE_BY_KIND[kind] ?? ANY_COPY;
 }
 
+/** The reading cut into plain and unsure stretches, so each unsure stretch gets one circle, not one per character. */
+function stretches(text: string, spans: UncertainSpan[]): { text: string; unsure: boolean }[] {
+  const out: { text: string; unsure: boolean }[] = [];
+  let at = 0;
+  for (const s of [...spans].sort((a, b) => a.start - b.start)) {
+    if (s.end <= at) continue;
+    if (s.start > at) out.push({ text: text.slice(at, s.start), unsure: false });
+    out.push({ text: text.slice(Math.max(at, s.start), s.end), unsure: true });
+    at = s.end;
+  }
+  if (at < text.length) out.push({ text: text.slice(at), unsure: false });
+  return out;
+}
+
 /** "Base 1: 4 · Height: 5", skipping blanks, in the tool's own words. */
 function describeGuess(guess: StructuredGuess): string {
   const spec = RECOGNIZABLE_TOOLS.find((t) => t.type === guess.type)?.spec ?? {};
@@ -321,20 +335,20 @@ export function RecognitionDialog({ kind, initialImage, onUse, onClose }: Props)
             <div className="recog-reading">
               <span className="tag">UJI's best guess — check it</span>
               <div className="recog-reading-line">
-                {readText.split('').map((ch, i) =>
-                  uncertain.some((u) => i >= u.start && i < u.end) ? (
+                {stretches(readText, uncertain).map((s, i) =>
+                  s.unsure ? (
                     <span key={i} className="recog-uncertain">
-                      {ch}
+                      {s.text}
                       <HandCircle tone="coral" />
                     </span>
                   ) : (
-                    <span key={i}>{ch}</span>
+                    <span key={i}>{s.text}</span>
                   ),
                 )}
               </div>
               {uncertain.map((u, i) => (
                 <p key={i} className="hand recog-reading-note">
-                  Not sure about the circled bit. {u.note}
+                  Not sure about “{readText.slice(u.start, u.end)}”. {u.note}
                 </p>
               ))}
             </div>

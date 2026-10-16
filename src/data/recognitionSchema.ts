@@ -265,6 +265,8 @@ export function handPickedInputs(type: WindowType, text: string): Record<string,
   return free.length === 1 ? { ...blank, [free[0]]: text } : blank;
 }
 
+const MAX_UNSURE = 8;
+
 /**
  * Turns the reader's unsure bits, quoted back as exact snippets of its own text
  * (models can't count characters reliably, but they can quote), into spans.
@@ -275,7 +277,9 @@ export function locateUncertain(text: string, items: { snippet: string; note: st
   const spans: UncertainSpan[] = [];
   let from = 0;
   for (const { snippet, note } of items) {
-    if (!snippet) continue;
+    // An unsure bit is a character or a short token ("5", "sin"); anything longer is the
+    // reader hedging about something else (which problem to read, say), not a misread.
+    if (!snippet || snippet.length > MAX_UNSURE) continue;
     let at = text.indexOf(snippet, from);
     if (at < 0) at = text.indexOf(snippet);
     if (at < 0) continue;

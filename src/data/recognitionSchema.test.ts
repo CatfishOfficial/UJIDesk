@@ -99,6 +99,11 @@ describe('locateUncertain', () => {
     expect(spans.map((s) => s.start)).toEqual([0, 5]);
   });
 
+  it('drops long stretches, which are hedging rather than a misread character', () => {
+    expect(locateUncertain('3x + 4y = 12, or (2, 3) and (4, 7)', [{ snippet: '3x + 4y = 12', note: 'could be more than one problem' }])).toEqual([]);
+    expect(locateUncertain('y = sin(x)', [{ snippet: 'sin', note: 'could be sim' }])).toHaveLength(1);
+  });
+
   it('still finds bits listed out of order, and drops ones that aren’t there', () => {
     const spans = locateUncertain('ab', [
       { snippet: 'b', note: '' },

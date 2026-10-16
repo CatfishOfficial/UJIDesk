@@ -51,7 +51,7 @@ function clientIp(req: VercelRequest): string {
 // Quoted rather than indexed: the model copies the unsure characters and
 // locateUncertain finds them, since models can't count string positions.
 const UncertainBit = z.object({
-  snippet: z.string().describe('The exact characters from "text" you are unsure about, copied exactly as they appear there.'),
+  snippet: z.string().describe('The character or few characters from "text" you can\'t make out, copied exactly as they appear there.'),
   note: z.string().describe('What else it could be, briefly (e.g. "could be 5 or S").'),
 });
 
@@ -85,9 +85,10 @@ function systemPrompt(kind: RecognitionKind | undefined): string {
   return `You read one math or science problem from a photo (handwritten, printed or a screenshot) for UJI, a homework whiteboard for students. You transcribe the problem, pick the UJI tool that solves it and fill in that tool's fields. You never solve it, hint at the answer or comment on it: the tool does the math, and the student sees what you read and which tool you picked before anything opens.
 
 How to fill in the response:
-- "text": the problem on one line of plain text, the way a student would type it: ^ for powers, sqrt() for roots, / for fractions, - for minus. Keep numbers, variables, letters and units exactly as shown (but write a spelled-out number like "seven" as 7), keep a word problem's wording, and don't correct the student's work. If the photo has several problems, read the one that's circled or marked, otherwise the first complete one.
+- "text": the problem on one line of plain text, the way a student would type it: ^ for powers, sqrt() for roots, / for fractions, - for minus. Keep numbers, variables, letters and units exactly as shown (but write a spelled-out number like "seven" as 7), keep a word problem's wording, and don't correct the student's work. If the photo has several problems, read only one: the one that's circled or marked, otherwise the first complete one.
+- Read only the problem itself. Ignore app or website interface around it (buttons, menus, labels, instructions) and faded placeholder or example text inside input boxes. A screenshot of an app, UJI included, whose only math is that kind of example text has no problem in it.
 - "notMath": true only when the photo shows no math or science problem at all; "text" is then empty.
-- "uncertain": one entry per bit you can't read for sure, in reading order, with "snippet" copied exactly from "text". Empty when you're sure of everything.
+- "uncertain": one entry per character or short group of characters you can't make out (a 5 that might be an S), in reading order, with "snippet" copied exactly from "text" and "note" giving the other reading. Nothing else goes here, such as doubts about which problem to read. Empty when you can read everything.
 - "structured": the tool for this problem with its fields filled in, whenever one of the tools below fits and the problem gives the values it needs. null only when no tool fits (a proof, a 3D solid, a graph to read, a topic not listed) or the values can't be read — never force a problem into the nearest tool.
 
 Picking the tool: go by what the problem asks you to find, using each tool's description below. A right triangle with an acute angle given or asked for is "trig"; one with only sides is "pythag"; its area is "area". Two points are "slopeFromPoints" when only the slope is asked for, "pointSlope" when the line's equation is.
