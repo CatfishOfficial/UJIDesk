@@ -2,13 +2,13 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 /**
  * The Supabase project behind accounts, or null when this build has none set up
- * (VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY missing). Then accounts stay
- * hidden and UJI works exactly as it does without them, on this device only.
- * The publishable key is meant to be public: row-level security in
+ * (SUPABASE_URL / SUPABASE_PUBLISHABLE_KEY missing; see vite.config.ts). Then
+ * accounts stay hidden and UJI works exactly as it does without them, on this
+ * device only. The publishable key is meant to be public: row-level security in
  * supabase/migrations decides who can read and write what.
  */
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+const url = __SUPABASE_URL__ || undefined;
+const key = __SUPABASE_PUBLISHABLE_KEY__ || undefined;
 
 /**
  * What brought the page here, read before the client tidies the address bar:
