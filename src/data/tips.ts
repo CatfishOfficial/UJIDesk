@@ -20,6 +20,7 @@ export const TIPS: string[] = [
   'Drop a sticker onto a window and it sticks there, moving and minimizing along with it.',
   'Settings → Text size makes everything bigger, windows included, so nothing gets cut off.',
   'Pick Dynamic under Settings → Appearance, and UJI goes dark at 7pm and light again at 6am.',
+  'Sign in from Settings → Account to keep your tokens, fish and desks on every device.',
 ];
 
 /** The tip with {mod} filled in for this computer's modifier key. */

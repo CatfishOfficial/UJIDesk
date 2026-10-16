@@ -1361,6 +1361,14 @@ body.is-placing * {
   font-size: 13px;
   overflow-wrap: anywhere;
 }
+.account-sync {
+  margin: 0;
+  color: var(--ink-2);
+}
+.account-sync.is-offline,
+.account-sync.is-error {
+  color: var(--coral);
+}
 .account-actions {
   display: flex;
   flex-wrap: wrap;

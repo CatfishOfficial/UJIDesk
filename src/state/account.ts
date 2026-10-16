@@ -13,6 +13,8 @@ interface AccountState {
   userId: string | null;
   /** The account dialog's form, or null while it's closed. */
   dialog: AuthMode | null;
+  /** Account sync (see sync.ts): whether this device's stuff is saved to the account yet. */
+  sync: 'idle' | 'saving' | 'saved' | 'offline' | 'error';
   openDialog: (mode: AuthMode) => void;
   closeDialog: () => void;
 }
@@ -22,6 +24,7 @@ export const useAccount = create<AccountState>()((set) => ({
   email: null,
   userId: null,
   dialog: null,
+  sync: 'idle',
   openDialog: (dialog) => set({ dialog }),
   closeDialog: () => set({ dialog: null }),
 }));
@@ -100,8 +103,7 @@ export async function updatePassword(password: string): Promise<AuthResult> {
   return error ? { ok: false, message: friendlyAuthError(error) } : { ok: true };
 }
 
-/** Signs out on this device only; other devices stay signed in. */
+/** Signs out on this device only; other devices stay signed in. The button goes through sync.ts's signOutAndClear. */
 export async function signOut(): Promise<void> {
   await supabase?.auth.signOut({ scope: 'local' });
-  useUI.getState().toast('Signed out.');
 }

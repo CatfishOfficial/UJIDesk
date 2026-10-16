@@ -75,6 +75,11 @@ const commit = (desks: SavedDesk[]) => {
   storage.write(desks);
 };
 
+/** Swaps the whole list at once: account sync, after merging this device's desks with the account's. */
+export function replaceDesks(desks: SavedDesk[]) {
+  commit(desks);
+}
+
 export function snapshotBoard(): DeskSnapshot {
   const s = useWorkspace.getState();
   const { vw, vh } = viewport();

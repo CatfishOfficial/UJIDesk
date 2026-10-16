@@ -92,7 +92,8 @@ function withoutOrphans(stickers: PlacedSticker[], windows: Record<string, Win>,
 
 export const uid = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 
-const initialProgress: Progress = {
+/** A fresh start: also what account sync measures a never-synced device's progress from. */
+export const initialProgress: Progress = {
   tokens: 0,
   tokensEarned: 0,
   solved: 0,
@@ -109,7 +110,7 @@ const initialProgress: Progress = {
   trips: 0,
 };
 
-const initialSettings: Settings = { theme: 'light', grid: true, motion: 'system', backpackPos: { edge: 'bottom', t: 0 }, arrange: DEFAULT_ARRANGE, uiScale: 1, tips: true };
+export const initialSettings: Settings = { theme: 'light', grid: true, motion: 'system', backpackPos: { edge: 'bottom', t: 0 }, arrange: DEFAULT_ARRANGE, uiScale: 1, tips: true };
 
 const isTaskOpen = (windows: Record<string, Win>) => Object.values(windows).some((w) => TOOLS[w.type].isTask);
 

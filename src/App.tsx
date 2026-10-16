@@ -13,6 +13,7 @@ import { GuideLayer } from './components/windows/GuideLayer';
 import { BoardMenu } from './components/BoardMenu';
 import { AuthDialog } from './components/account/AuthDialog';
 import { startAccount } from './state/account';
+import { startSync } from './state/sync';
 import { DEFAULT_ARRANGE } from './state/snap';
 import type { CSSProperties } from 'react';
 
@@ -51,6 +52,7 @@ export default function App() {
     }
     ws.clampAll();
     startAccount();
+    startSync();
   }, []);
 
   // Keep every window reachable when the screen size changes.

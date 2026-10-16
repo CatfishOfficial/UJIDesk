@@ -13,7 +13,7 @@ npm test           # engine tests (Vitest): math, science, calculators, desks, d
 npm run build      # type-check + production build into dist/
 ```
 
-No accounts: the live board is saved to `localStorage` under `uji.workspace`, saved desks under `uji.desks`. The one server-side piece is `api/recognize.ts` (a Vercel serverless function) for reading photos of problems — it needs `OPENAI_API_KEY` set on the host; without it, everything still works except that one reader, which just fails over to typing the problem in by hand. `npm run dev` alone won't exercise it (no function runtime) — use `vercel dev`, or test against a deployed preview.
+Everything is saved to `localStorage` first (the live board under `uji.workspace`, saved desks under `uji.desks`), so UJI works without an account. Optional email-and-password accounts (Supabase, for students 13 and up) back it all up and sync it between devices; see *Accounts* below. The one server-side piece is `api/recognize.ts` (a Vercel serverless function) for reading photos of problems — it needs `OPENAI_API_KEY` set on the host; without it, everything still works except that one reader, which just fails over to typing the problem in by hand. `npm run dev` alone won't exercise it (no function runtime) — use `vercel dev`, or test against a deployed preview.
 
 Shortcuts: **Ctrl/⌘ K** opens Math tools search in the backpack · **Ctrl/⌘ B** toggles the backpack · **Esc** closes the backpack or leaves Draw mode · window title bars take **arrow keys** to move and **Shift+arrows** to resize · with the backpack button focused, **arrow keys** hop it between corners.
 
@@ -62,6 +62,14 @@ Shortcuts: **Ctrl/⌘ K** opens Math tools search in the backpack · **Ctrl/⌘ 
 | **Appearance:** Light, Dark, or Dynamic (follows your clock: dark from 7pm to 6am, the same day/night as da Ship), in the bag's Settings. All colors are tokens in `styles/tokens.css`; paper (sticky notes, hints) stays paper in both themes | Working |
 | Responsive: under 720px wide, windows go full-screen one at a time, the backpack becomes a bottom sheet listing every open window | Working |
 
+## Accounts
+
+Optional, email and password, for students 13 and up. Settings → Account signs in or creates an account; everything already on the device comes with it, and it all syncs from then on (progress, settings, the board, saved desks). Signing out clears the device, for shared computers.
+
+- **Setup:** a Supabase project with `supabase/migrations/0001_accounts.sql` run in its SQL editor (tables, row-level security so each student only reaches their own rows, and `delete_my_account()`). Set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` on Vercel (and in `.env.local` for `npm run dev`); `vite.config.ts` bakes in exactly those two names at build time, so redeploy after changing them. Without them, accounts stay hidden.
+- **Email confirmation is off**, so accounts work immediately. The only email sent is the forgot-password link, which needs an email service with your own domain before real students can rely on it.
+- **Tokens are still trusted from the browser,** as before accounts: fine while they only buy fishing tickets, but anything social built on them should award them server-side.
+
 ## What is mocked (and says so in the UI)
 
 - **Fish roster.** Five joke fish plus six clearly named placeholders (`placeholder: true` in `data/fish.tsx`) waiting for the real roster. The bowl starts empty; fish come from da Ship.
@@ -70,7 +78,7 @@ Shortcuts: **Ctrl/⌘ K** opens Math tools search in the backpack · **Ctrl/⌘ 
 
 ## Planned / not built
 
-Accounts and sync (desks already go through a storage adapter, see below), multiplayer, and the game-side ideas: fish dress-up, room decor, Lucky River Casino, Ikae and the wider points economy. The board deliberately stays one screen; there is no infinite canvas.
+Multiplayer, and the game-side ideas: fish dress-up, room decor, Lucky River Casino, Ikae and the wider points economy. The board deliberately stays one screen; there is no infinite canvas.
 
 ## Art direction (development placeholders)
 
@@ -177,4 +185,4 @@ src/
 - **Recognition:** the reader lives in `api/recognize.ts`; the tools and fields it may suggest come from `data/recognitionSchema.ts`, whose field names are read straight from the `TOOLS` registry. To make a new problem tool recognizable, add it to `BASE` there with a `when` line (which problems it's for, so the reader picks it over its neighbours) and a one-line guide per field (and `options` for any choice field, like a shape) — `recognitionSchema.test.ts` fails until every field has one. The model's response schema is built from that guide, so it can only name real tools, fields and choices, and `checkGuess` re-checks its answer on both the server and the client. Imports reachable from `api/` keep their `.js` endings: Vercel runs those files as plain ES modules.
 - **New fish:** add an entry to `FISH` in `data/fish.tsx` with a rarity, a time (`day`/`night`/`any`), a palette, and optionally an accessory patch and `unlocks`. It appears in the trip pool, catch log and bowl automatically. Prices, casts and odds live at the top of `game/ship.ts`.
 - **New item:** register a type in `data/tools.ts` with `chrome: 'bare'` and an `aspect`, render it as pixel art, add a right-click `ContextMenu` ending in `<ItemMenuFooter/>`, and add it to the *Items* section in `data/catalog.tsx`.
-- **Persistence and sync:** `useWorkspace` uses zustand's `persist` for the live board. Saved desks go through `DeskStorage` in `state/desks.ts` (`read()` / `write()`); call `setDeskStorage()` with a remote adapter to sync desks once accounts exist.
+- **Persistence and sync:** `useWorkspace` uses zustand's `persist` for the live board, and saved desks go through `DeskStorage` in `state/desks.ts`; both stay the working copy. Account sync (`state/sync.ts`) mirrors them to Supabase in the background: each sync pulls the account, three-way merges it with this device using what was last in step (`uji.sync`, merge rules in `state/syncMerge.ts`), and saves only over the version it read, so devices combine instead of overwriting. A device that has never synced hands everything to the account it signs in to; signing out saves, then clears the device.

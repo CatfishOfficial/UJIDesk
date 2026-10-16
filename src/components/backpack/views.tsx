@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ChevronRight, Clock, LayoutGrid, RotateCcw, Undo2 } from 'lucide-react';
+import { useMemo } from 'react';
+import { ChevronRight, Clock, LayoutGrid, Undo2 } from 'lucide-react';
 import { SOLVER_TYPES, useWorkspace, usePracticeLock } from '../../state/store';
 import { useUI } from '../../state/ui';
 import { MATH_CATALOG, BACKPACK_ITEMS, type BackpackItem } from '../../data/catalog';
@@ -11,6 +11,7 @@ import { TOOLS } from '../../data/tools';
 import { RARITY } from '../../game/ship';
 import { InventoryGrid, type InventoryItem } from '../ui/InventoryGrid';
 import { AccountSection } from '../account/AccountSection';
+import { ArmedButton } from '../ui/ArmedButton';
 import { ModeSwitch } from '../ModeSwitch';
 import { PixelIcon } from '../ui/pixel-icons/PixelIcon';
 import { TOOL_ICONS } from '../ui/icons';
@@ -405,40 +406,11 @@ export function SettingsView() {
 
       <div className="inv-group-name">About this prototype</div>
       <ul className="about-list small">
-        <li>Everything, saved desks included, lives in this browser only. Sign-in and sync are planned.</li>
-        <li>Photo and screenshot import has a review step, but automatic recognition isn't connected.</li>
+        <li>Everything is saved in this browser. Signing in also keeps it in your account, for any device.</li>
+        <li>Photos are read by an AI reader that only transcribes; you check what it read before anything is solved.</li>
         <li>Most fish are placeholders; the real roster is coming.</li>
       </ul>
     </div>
-  );
-}
-
-function ArmedButton({ label, onConfirm, danger }: { label: string; onConfirm: () => void; danger?: boolean }) {
-  const [armed, setArmed] = useState(false);
-  useEffect(() => {
-    if (!armed) return;
-    const t = setTimeout(() => setArmed(false), 3000);
-    return () => clearTimeout(t);
-  }, [armed]);
-  return (
-    <button
-      type="button"
-      className={`btn btn-sm ${danger ? 'btn-danger' : ''} ${armed ? 'is-armed btn-danger' : ''}`}
-      onClick={() => {
-        if (armed) {
-          setArmed(false);
-          onConfirm();
-        } else setArmed(true);
-      }}
-    >
-      {armed ? (
-        'Click again to confirm'
-      ) : (
-        <>
-          <RotateCcw size={13} /> {label}
-        </>
-      )}
-    </button>
   );
 }
 
