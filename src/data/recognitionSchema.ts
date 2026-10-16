@@ -27,6 +27,8 @@ export interface RecognizableTool {
   placeholder: string;
   /** One concrete example, shown to the model as a format guide. */
   example: string;
+  /** When the model should pick this tool over the others: what the problem asks for, not just what it mentions. */
+  when: string;
   /** The exact field names this tool's Inputs use — read from the tool registry, not hand-copied. */
   fields: string[];
   /** A guide to every one of those fields (recognitionSchema.test.ts keeps the two in step). */
@@ -60,6 +62,7 @@ const BASE: Omit<RecognizableTool, 'fields'>[] = [
     label: 'The equation',
     placeholder: '3x + 4y = 12',
     example: '3x + 4y = 12',
+    when: 'One linear equation in x and y to rewrite as y = mx + b, or to find its slope and y-intercept.',
     spec: { eq: { label: 'Equation', hint: 'The linear equation as written, with x and y (e.g. 3x + 4y = 12).' } },
   },
   {
@@ -68,6 +71,7 @@ const BASE: Omit<RecognizableTool, 'fields'>[] = [
     label: 'The two points',
     placeholder: '(2, 3) and (4, 7)',
     example: '(2, 3) and (4, 7)',
+    when: 'Two points, when all it asks for is the slope.',
     spec: {
       x1: num('x₁', 'x of the first point.'),
       y1: num('y₁', 'y of the first point.'),
@@ -81,6 +85,7 @@ const BASE: Omit<RecognizableTool, 'fields'>[] = [
     label: 'The point and slope',
     placeholder: '(2, 3), slope 4',
     example: '(2, 3), slope 4',
+    when: 'The equation of a line through a point with a given slope, or through two points.',
     spec: {
       mode: { label: 'Given', hint: '"slope" when the problem gives one point and a slope; "points" when it gives two points.', options: ['slope', 'points'] },
       x1: num('x₁', 'x of the (first) point.'),
@@ -96,6 +101,7 @@ const BASE: Omit<RecognizableTool, 'fields'>[] = [
     label: 'The two equations',
     placeholder: '2x + 3y = 12, x − y = 1',
     example: '2x + 3y = 12, x - y = 1',
+    when: 'Two linear equations in x and y to solve together.',
     spec: {
       eq1: { label: 'Equation 1', hint: 'The first equation in x and y (e.g. 2x + 3y = 12).' },
       eq2: { label: 'Equation 2', hint: 'The second equation in x and y (e.g. x - y = 1).' },
@@ -107,6 +113,7 @@ const BASE: Omit<RecognizableTool, 'fields'>[] = [
     label: 'The equation',
     placeholder: 'x² − 5x + 6 = 0',
     example: 'x^2 - 5x + 6 = 0',
+    when: 'A quadratic equation (an x² term and an = sign) to solve: its roots, zeros or solutions.',
     spec: { eq: { label: 'Equation', hint: 'The quadratic equation to solve, with an = sign and ^ for powers (e.g. x^2 - 5x + 6 = 0).' } },
   },
   {
@@ -115,6 +122,7 @@ const BASE: Omit<RecognizableTool, 'fields'>[] = [
     label: 'The expression',
     placeholder: 'x² + 5x + 6',
     example: '2x^2 + 7x + 3',
+    when: 'A quadratic expression to factor (no = sign, or it says to factor).',
     spec: { expr: { label: 'Expression', hint: 'The polynomial to factor, with no = sign and ^ for powers (e.g. 2x^2 + 7x + 3).' } },
   },
   {
@@ -123,10 +131,11 @@ const BASE: Omit<RecognizableTool, 'fields'>[] = [
     label: 'The sides',
     placeholder: 'legs 3 and 4',
     example: 'legs 5 and 12',
+    when: 'A right triangle where only sides matter: a missing side, or whether three lengths make a right triangle. No angle besides the right angle is given or asked for.',
     spec: {
-      a: num('Leg a', 'One leg of the right triangle. Empty if it is the side to find.'),
+      a: num('Leg a', 'One leg: a side touching the right angle. Empty if it is the side to find.'),
       b: num('Leg b', 'The other leg. Empty if it is the side to find.'),
-      c: num('Hypotenuse c', 'The hypotenuse (opposite the right angle). Empty if it is the side to find.'),
+      c: num('Hypotenuse c', 'The hypotenuse: the side across from the right angle, not touching it. Empty if it is the side to find.'),
     },
   },
   {
@@ -135,6 +144,7 @@ const BASE: Omit<RecognizableTool, 'fields'>[] = [
     label: 'The shape and sizes',
     placeholder: 'circle with radius 5 cm',
     example: 'area of a rectangle 6 by 4 cm',
+    when: 'The area, perimeter or circumference of a rectangle, square, triangle, parallelogram, trapezoid or circle, including a right triangle\'s area.',
     spec: {
       shape: { label: 'Shape', hint: 'Which shape the problem is about.', options: ['rectangle', 'square', 'triangle', 'parallelogram', 'trapezoid', 'circle'] },
       unit: { label: 'Units', hint: 'The length unit given, or empty if none is.', options: ['', 'mm', 'cm', 'm', 'km', 'in', 'ft', 'yd', 'mi'] },
@@ -157,11 +167,12 @@ const BASE: Omit<RecognizableTool, 'fields'>[] = [
     label: 'The angle and side',
     placeholder: 'angle 35°, hypotenuse 10',
     example: 'angle 35 degrees, hypotenuse 10',
+    when: 'A right triangle with an acute angle given or asked for: a side from an angle and a side, or an angle from two sides (SOH CAH TOA).',
     spec: {
-      angle: num('Angle A', 'The acute angle A in degrees, no ° sign. Empty if it is what to find.'),
-      opp: num('Opposite', 'The side opposite angle A. Empty if not given.'),
-      adj: num('Adjacent', 'The side next to angle A that is not the hypotenuse. Empty if not given.'),
-      hyp: num('Hypotenuse', 'The hypotenuse. Empty if not given.'),
+      angle: num('Angle A', 'Angle A: the acute angle the problem gives, in degrees, no ° sign. Empty when the problem asks for the angle; then A is the angle it asks for. opp and adj are named from A.'),
+      opp: num('Opposite', 'The side across from angle A: with lettered corners, the side that touches the right angle but not A. Empty if not given.'),
+      adj: num('Adjacent', 'The side between angle A and the right angle: with lettered corners, the side joining those two corners. Empty if not given.'),
+      hyp: num('Hypotenuse', 'The side across from the right angle: with lettered corners, the side that doesn\'t touch it. Empty if not given.'),
     },
   },
   {
@@ -170,6 +181,7 @@ const BASE: Omit<RecognizableTool, 'fields'>[] = [
     label: 'The numbers',
     placeholder: '3, 7, 7, 2, 9',
     example: 'mean of 3, 7, 7, 2, 9',
+    when: 'The mean, median, mode or range of a list of numbers.',
     spec: { list: { label: 'Numbers', hint: 'All the data values, comma-separated (e.g. 3, 7, 7, 2, 9).' } },
   },
   {
@@ -178,6 +190,7 @@ const BASE: Omit<RecognizableTool, 'fields'>[] = [
     label: 'The terms',
     placeholder: '3, 7, 11, 15, …',
     example: '3, 7, 11, 15, …',
+    when: 'An arithmetic or geometric sequence: the next term, the nth term, or a sum.',
     spec: {
       terms: { label: 'Terms', hint: 'The given terms in order, comma-separated (e.g. 3, 7, 11, 15).' },
       n: { label: 'Find term', hint: 'Which term number the problem asks for, as a whole number (10 for "the 10th term"). Empty if it doesn\'t ask for one.' },
@@ -189,6 +202,7 @@ const BASE: Omit<RecognizableTool, 'fields'>[] = [
     label: 'The nuclide and decay',
     placeholder: 'Po-210 alpha decay',
     example: 'Po-210 alpha decay',
+    when: 'Alpha, beta-minus or positron decay of a given nuclide.',
     spec: {
       el: { label: 'Element', hint: 'The parent element\'s symbol (e.g. Po).' },
       a: { label: 'Mass number', hint: 'The parent\'s mass number, a whole number (e.g. 210).' },
@@ -222,6 +236,18 @@ export function checkGuess(type: unknown, inputs: unknown): StructuredGuess | nu
   }
   // A shape or mode with no numbers to go with it isn't a problem yet.
   return tool.fields.some((f) => !tool.spec[f].options && out[f]) ? { type: tool.type, inputs: out } : null;
+}
+
+/**
+ * Inputs for a tool the student picked by hand when nothing recognized the
+ * problem: the text goes in the tool's one text box if it has exactly one (the
+ * tool then says what doesn't fit), otherwise the tool opens blank.
+ */
+export function handPickedInputs(type: WindowType, text: string): Record<string, string> {
+  const blank = { ...((TOOLS[type].initialData() as { inputs?: Record<string, string> }).inputs ?? {}) };
+  const tool = RECOGNIZABLE_TOOLS.find((t) => t.type === type);
+  const free = tool ? tool.fields.filter((f) => !tool.spec[f].options) : [];
+  return free.length === 1 ? { ...blank, [free[0]]: text } : blank;
 }
 
 /**

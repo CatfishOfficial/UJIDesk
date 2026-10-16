@@ -96,13 +96,51 @@ function detectTrig(t: string): Record<string, string> | null {
 
 function detectPythag(t: string): Record<string, string> | null {
   const s = t.toLowerCase();
-  if (!/pythag|hypotenuse|\blegs?\b|right triangle/.test(s)) return null;
+  // "Area of a right triangle with legs 6 and 8" is the area tool's.
+  if (!/pythag|hypotenuse|\blegs?\b|right triangle/.test(s) || /\b(area|perimeter)\b/.test(s)) return null;
   const c = after(s, /hyp/);
   const rest = nums(s.replace(/hyp\w*\s*(?:is|of|=|:)?\s*-?\d*\.?\d+(?:\/\d+)?/, ' '));
   const a = after(s, /\ba\s*=/) || rest[0] || '';
   const b = after(s, /\bb\s*=/) || (c ? '' : rest[1] ?? '');
   if ([a, b, c].filter(Boolean).length < 2) return null;
   return { a, b, c };
+}
+
+/**
+ * Right triangles named by their corners: "In triangle EFD, right angle at F,
+ * EF = 12, ∠E = 42°. Find DF." The corners say which side is which: the side
+ * joining the right angle to the angle in question is adjacent, the other side
+ * touching the right angle is opposite, and the side away from it is the
+ * hypotenuse. With no angle given or asked for, it's sides only (Pythagoras).
+ */
+function detectLabeledRightTriangle(t: string): DetectedProblem | null {
+  const s = t.replace(/[−–]/g, '-').replace(/º/g, '°');
+  if (/\b(area|perimeter)\b/i.test(s)) return null;
+  // ∠F, angle F, m∠F; a three-letter name like ∠DEF means the middle corner.
+  const ANGLE = String.raw`(?:m\s*)?(?:∠|[Aa]ngle\s+)\s*([A-Z]{3}|[A-Z])\b`;
+  const vertex = (name: string) => (name.length === 3 ? name[1] : name);
+  const right =
+    /[Rr]ight\s+angle\s+(?:(?:at|is)\s+)?(?:∠\s*|[Aa]ngle\s+)?([A-Z])\b/.exec(s)?.[1] ??
+    /(?:∠\s*)?\b([A-Z])\s+is\s+(?:a\s+)?right\s+angle/.exec(s)?.[1] ??
+    [...s.matchAll(new RegExp(`${ANGLE}\\s*(?:=|is)\\s*90\\b`, 'g'))].map((m) => vertex(m[1]))[0];
+  if (!right) return null;
+
+  const sides = [...s.matchAll(/\b([A-Z])([A-Z])\s*(?:=|is)\s*(\d*\.?\d+(?:\/\d+)?)/g)].map((m) => ({ ends: [m[1], m[2]], value: m[3] }));
+  if (!sides.length) return null;
+  const given = [...s.matchAll(new RegExp(`${ANGLE}\\s*(?:=|is|measures)\\s*(\\d+(?:\\.\\d+)?)\\s*°?`, 'g'))]
+    .map((m) => ({ at: vertex(m[1]), value: m[2] }))
+    .find((a) => a.at !== right && a.value !== '90');
+  const asked = new RegExp(String.raw`(?:[Ff]ind|[Ww]hat\s+is|[Cc]alculate|[Dd]etermine)\s+(?:the\s+)?(?:(?:measure|size)\s+of\s+)?${ANGLE}`).exec(s)?.[1];
+  const angleAt = given?.at ?? (asked && vertex(asked) !== right ? vertex(asked) : undefined);
+
+  if (angleAt) {
+    const out: Record<string, string> = { angle: given?.value ?? '', opp: '', adj: '', hyp: '' };
+    for (const side of sides) out[!side.ends.includes(right) ? 'hyp' : side.ends.includes(angleAt) ? 'adj' : 'opp'] = side.value;
+    return Object.values(out).filter(Boolean).length >= 2 ? { type: 'trig', inputs: out } : null;
+  }
+  const legs = sides.filter((x) => x.ends.includes(right));
+  const out = { a: legs[0]?.value ?? '', b: legs[1]?.value ?? '', c: sides.find((x) => !x.ends.includes(right))?.value ?? '' };
+  return Object.values(out).filter(Boolean).length >= 2 ? { type: 'pythag', inputs: out } : null;
 }
 
 function detectPointSlope(t: string): Record<string, string> | null {
@@ -143,6 +181,8 @@ export function detectProblem(text: string): DetectedProblem | null {
     if (l.ok && l.values.length >= 3) return { type: 'sequences', inputs: { terms: l.values.map(String).join(', '), n: nth ? nth[1] ?? nth[2] ?? nth[3] ?? nth[4] : '' } };
   }
 
+  const labeled = detectLabeledRightTriangle(t);
+  if (labeled) return labeled;
   const ps = detectPointSlope(t);
   if (ps) return { type: 'pointSlope', inputs: ps };
   const trig = detectTrig(t);

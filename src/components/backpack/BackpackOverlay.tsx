@@ -179,15 +179,13 @@ export function BackpackOverlay({ compact }: { compact: boolean }) {
             kind="any"
             onClose={() => setImporting(false)}
             onUse={(result) => {
+              const target = result.structured ?? detectProblem(result.text);
+              // Nothing recognizes it: the dialog stays open and asks which tool it's for.
+              if (!target) return false;
               setImporting(false);
-              if (result.structured) {
-                openWindow(result.structured.type, { data: { inputs: result.structured.inputs, autoSolve: true } });
-              } else {
-                const d = detectProblem(result.text);
-                // Unclear input goes to the equation tool, whose error explains what to fix.
-                openWindow(d?.type ?? 'standardToSlope', { data: { inputs: d?.inputs ?? { eq: result.text }, autoSolve: true } });
-              }
+              openWindow(target.type, { data: { inputs: target.inputs, autoSolve: true } });
               setBackpack(false);
+              return true;
             }}
           />
         )}

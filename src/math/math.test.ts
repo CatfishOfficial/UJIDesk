@@ -262,4 +262,18 @@ describe('problem detection', () => {
     expect(detectProblem('Na 22 positron emission')?.inputs).toMatchObject({ el: 'Na', a: '22', type: 'positron' });
     expect(detectProblem('x^2 + y = 3')).toBeNull();
   });
+
+  it('reads right triangles named by their corners', () => {
+    // Angle E with the right angle at F: EF joins them (adjacent), DF is opposite, DE the hypotenuse.
+    expect(detectProblem('In triangle EFD, right angle at F, EF = 12, ∠E = 42°.')).toEqual({ type: 'trig', inputs: { angle: '42', opp: '', adj: '12', hyp: '' } });
+    expect(detectProblem('In triangle EFD, right angle at F, EF = 12, ∠E = 42°. Find DF.')?.inputs).toMatchObject({ angle: '42', adj: '12' });
+    expect(detectProblem('In △PQR, ∠Q is a right angle, ∠PRQ = 30° and PR = 10. Find PQ.')).toEqual({ type: 'trig', inputs: { angle: '30', opp: '', adj: '', hyp: '10' } });
+    // Asked for an angle: sides are named from that angle, and the angle box stays empty.
+    expect(detectProblem('∠B = 90°, AB = 7, BC = 24. Find m∠A.')).toEqual({ type: 'trig', inputs: { angle: '', opp: '24', adj: '7', hyp: '' } });
+    // Sides only: legs touch the right angle, the hypotenuse doesn't.
+    expect(detectProblem('Right triangle ABC has a right angle at C. AB = 13 and AC = 5. Find BC.')).toEqual({ type: 'pythag', inputs: { a: '5', b: '', c: '13' } });
+    expect(detectProblem('Triangle XYZ: angle Y = 90, XY = 6, YZ = 8')).toEqual({ type: 'pythag', inputs: { a: '6', b: '8', c: '' } });
+    // An area question about a right triangle is still an area question.
+    expect(detectProblem('Find the area of right triangle ABC with right angle at B, AB = 6, BC = 8')?.type).not.toMatch(/trig|pythag/);
+  });
 });

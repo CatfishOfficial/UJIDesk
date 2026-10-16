@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Camera, X, ArrowLeft, Info, Loader2 } from 'lucide-react';
 import { PixelIcon } from '../../ui/pixel-icons/PixelIcon';
 import { HandCircle } from '../../ui/HandDrawn';
-import { RECOGNIZABLE_BY_KIND, RECOGNIZABLE_TOOLS, checkGuess, type RecognitionKind, type StructuredGuess, type UncertainSpan } from '../../../data/recognitionSchema';
+import { TOOL_ICONS } from '../../ui/icons';
+import { RECOGNIZABLE_BY_KIND, RECOGNIZABLE_TOOLS, checkGuess, handPickedInputs, type RecognitionKind, type StructuredGuess, type UncertainSpan } from '../../../data/recognitionSchema';
 import { TOOLS } from '../../../data/tools';
 
 export type { RecognitionKind };
@@ -16,7 +17,8 @@ export interface RecognitionResult {
 interface Props {
   kind: RecognitionKind;
   initialImage?: string | null;
-  onUse: (result: RecognitionResult) => void;
+  /** Places the problem in a tool. False when nothing recognizes it: the dialog stays open and asks which tool it's for. */
+  onUse: (result: RecognitionResult) => boolean;
   onClose: () => void;
 }
 
@@ -72,12 +74,15 @@ export function RecognitionDialog({ kind, initialImage, onUse, onClose }: Props)
   const [readError, setReadError] = useState<string | null>(null);
   const [uncertain, setUncertain] = useState<UncertainSpan[]>([]);
   const [structured, setStructured] = useState<StructuredGuess | null>(null);
+  /** Nothing recognized the problem, so the student picks the tool. */
+  const [unplaced, setUnplaced] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLInputElement>(null);
   const firstRef = useRef<HTMLButtonElement>(null);
+  const pickRef = useRef<HTMLDivElement>(null);
 
   const stopCamera = () => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -88,6 +93,9 @@ export function RecognitionDialog({ kind, initialImage, onUse, onClose }: Props)
     if (stage === 'review') textRef.current?.focus();
     if (stage === 'source') firstRef.current?.focus();
   }, [stage]);
+  useEffect(() => {
+    if (unplaced) pickRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [unplaced]);
 
   // Pasting an image anywhere while the dialog is open goes straight to review.
   useEffect(() => {
@@ -113,6 +121,7 @@ export function RecognitionDialog({ kind, initialImage, onUse, onClose }: Props)
     setReadText('');
     setUncertain([]);
     setStructured(null);
+    setUnplaced(false);
     try {
       const res = await fetch('/api/recognize', {
         method: 'POST',
@@ -294,7 +303,7 @@ export function RecognitionDialog({ kind, initialImage, onUse, onClose }: Props)
           className="recog-review"
           onSubmit={(e) => {
             e.preventDefault();
-            if (text.trim()) onUse({ text: text.trim() });
+            if (text.trim() && !onUse({ text: text.trim() })) setUnplaced(true);
           }}
         >
           {image && <img className="recog-image" src={image} alt="The problem you brought in" />}
@@ -356,6 +365,7 @@ export function RecognitionDialog({ kind, initialImage, onUse, onClose }: Props)
             onChange={(e) => {
               setText(e.target.value);
               setStructured(null);
+              setUnplaced(false);
             }}
             autoComplete="off"
             spellCheck={false}
@@ -367,6 +377,28 @@ export function RecognitionDialog({ kind, initialImage, onUse, onClose }: Props)
               Use this problem
             </button>
           </div>
+          {unplaced && (
+            <div ref={pickRef} className="recog-pick" role="group" aria-label="Pick a tool for this problem">
+              <p className="hand quick-unsure">Not sure which tool that is. Pick one:</p>
+              <div className="quick-tools recog-pick-tools">
+                {RECOGNIZABLE_TOOLS.map((t) => {
+                  const I = TOOL_ICONS[t.type];
+                  return (
+                    <button
+                      key={t.type}
+                      type="button"
+                      className="quick-tool"
+                      title={TOOLS[t.type].description}
+                      onClick={() => onUse({ text: text.trim(), structured: { type: t.type, inputs: handPickedInputs(t.type, text.trim()) } })}
+                    >
+                      <I size={26} />
+                      <span>{TOOLS[t.type].title}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </form>
       )}
 

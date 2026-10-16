@@ -351,33 +351,21 @@ export function ProblemShell({ winId, type, solve, renderInputs, emptyInputs, ex
           initialImage={importing.image}
           onClose={() => setImporting(null)}
           onUse={(result) => {
-            setImporting(null);
-            // A confident structured guess for a *different* tool opens that tool instead of
-            // force-fitting it into this one; for this tool, its fields are more reliable than
-            // re-parsing the text through fromRecognized.
-            if (result.structured) {
-              if (result.structured.type === type) {
-                const next = { ...emptyInputs, ...result.structured.inputs };
-                setInputs(next);
-                submit(next);
-              } else {
-                useWorkspace.getState().openWindow(result.structured.type, { near: winId, data: { inputs: result.structured.inputs, autoSolve: true } });
-              }
-              return;
-            }
-            const parsed = fromRecognized(result.text);
-            if (parsed) {
-              submit(parsed);
-              return;
-            }
-            // Not this tool's kind of problem: if the shared router knows whose it is, open that one beside it.
-            const other = detectProblem(result.text);
-            if (other && other.type !== type) {
+            // A structured guess (or a tool picked by hand) for a *different* tool opens that
+            // tool instead of force-fitting it into this one; for this tool, its fields are more
+            // reliable than re-parsing the text through fromRecognized.
+            const parsed = result.structured ? null : fromRecognized(result.text);
+            // Not this tool's kind of problem: if the shared router knows whose it is, that one opens beside it.
+            const other = result.structured ?? (parsed ? null : detectProblem(result.text));
+            if (parsed || other?.type === type) {
+              const next = parsed ?? { ...emptyInputs, ...other!.inputs };
+              setInputs(next);
+              submit(next);
+            } else if (other) {
               useWorkspace.getState().openWindow(other.type, { near: winId, data: { inputs: other.inputs, autoSolve: true } });
-            } else {
-              setInputs({ ...emptyInputs, ...(recognition === 'equation' ? { eq: result.text } : {}) });
-              setError({ text: "Couldn't turn that into a problem. Check the inputs above." });
-            }
+            } else return false;
+            setImporting(null);
+            return true;
           }}
         />
       )}

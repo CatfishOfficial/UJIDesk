@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { RECOGNIZABLE_TOOLS, checkGuess, locateUncertain } from './recognitionSchema';
+import { RECOGNIZABLE_TOOLS, checkGuess, handPickedInputs, locateUncertain } from './recognitionSchema';
 import { TOOLS } from './tools';
 import { SHAPES, UNITS } from '../math/geometry';
 import { DECAY } from '../science/decay';
@@ -12,6 +12,7 @@ describe('the photo reader’s field guide', () => {
     for (const t of RECOGNIZABLE_TOOLS) {
       expect(Object.keys(t.spec).sort(), t.type).toEqual([...t.fields].sort());
       expect(t.fields.length, t.type).toBeGreaterThan(0);
+      expect(t.when.length, `${t.type} says when to pick it`).toBeGreaterThan(20);
     }
   });
 
@@ -60,6 +61,15 @@ describe('checkGuess', () => {
     expect(checkGuess('area', { shape: 'circle', unit: 'cm' })).toBeNull();
     expect(checkGuess('stats', { list: '   ' })).toBeNull();
     expect(checkGuess('stats', null)).toBeNull();
+  });
+});
+
+describe('handPickedInputs', () => {
+  it('puts the text in a tool’s one text box, and opens anything else blank', () => {
+    expect(handPickedInputs('standardToSlope', 'y = 2x + 1')).toEqual({ eq: 'y = 2x + 1' });
+    expect(handPickedInputs('stats', '1, 2, 3')).toEqual({ list: '1, 2, 3' });
+    expect(handPickedInputs('trig', 'In triangle EFD…')).toEqual({ angle: '', opp: '', adj: '', hyp: '' });
+    expect(handPickedInputs('area', 'a shape')).toMatchObject({ shape: 'rectangle', l: '', r: '' });
   });
 });
 

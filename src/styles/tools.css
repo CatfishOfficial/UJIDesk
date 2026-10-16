@@ -771,6 +771,19 @@ p.problem-error {
 .recog-error {
   margin: 0;
 }
+.recog-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+.recog-pick .quick-unsure {
+  margin: 0;
+}
+/* Fits as many tools per row as the window allows, rather than the backpack's fixed four. */
+.quick-tools.recog-pick-tools {
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+}
 
 /* ─── Calculator ────────────────────────────────────── */
 
