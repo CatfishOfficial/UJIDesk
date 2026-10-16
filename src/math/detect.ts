@@ -145,7 +145,8 @@ function detectLabeledRightTriangle(t: string): DetectedProblem | null {
 
 function detectPointSlope(t: string): Record<string, string> | null {
   const s = t.toLowerCase().replace(/[−–]/g, '-');
-  const named = /point[\s-]*slope/.test(s);
+  // "Point-slope", or the equation of a line through two points (just its slope is slopeFromPoints).
+  const named = /point[\s-]*slope|\bequation\b/.test(s);
   const slope = /(?:slope|\bm)\s*(?:is|of|=|:)?\s*(-?\d*\.?\d+(?:\/\d+)?|undefined)/.exec(s);
   const pts = [...s.matchAll(/\(\s*(-?\d*\.?\d+(?:\/\d+)?)\s*,\s*(-?\d*\.?\d+(?:\/\d+)?)\s*\)/g)];
   if (slope && pts.length === 1) return { mode: 'slope', x1: pts[0][1], y1: pts[0][2], m: slope[1], x2: '', y2: '' };
@@ -189,7 +190,8 @@ export function detectProblem(text: string): DetectedProblem | null {
   if (trig) return { type: 'trig', inputs: trig };
   const py = detectPythag(t);
   if (py) return { type: 'pythag', inputs: py };
-  if (/\b(area|perimeter|circumference)\b|radius|diameter/.test(s)) {
+  // Flat shapes only: a cylinder's volume or a sphere's surface area mentions a radius too.
+  if (/\b(area|perimeter|circumference)\b|radius|diameter/.test(s) && !/\b(volume|surface area|cylinders?|cones?|spheres?|prisms?|pyramids?|cubes?|cuboids?)\b/.test(s)) {
     const a = detectArea(t);
     if (a) return { type: 'area', inputs: a };
   }

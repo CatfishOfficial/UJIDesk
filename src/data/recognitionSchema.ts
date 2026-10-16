@@ -71,7 +71,7 @@ const BASE: Omit<RecognizableTool, 'fields'>[] = [
     label: 'The two points',
     placeholder: '(2, 3) and (4, 7)',
     example: '(2, 3) and (4, 7)',
-    when: 'Two points, when all it asks for is the slope.',
+    when: 'Two points, when the question asks only for the slope, not for the line\'s equation.',
     spec: {
       x1: num('x₁', 'x of the first point.'),
       y1: num('y₁', 'y of the first point.'),
@@ -85,9 +85,9 @@ const BASE: Omit<RecognizableTool, 'fields'>[] = [
     label: 'The point and slope',
     placeholder: '(2, 3), slope 4',
     example: '(2, 3), slope 4',
-    when: 'The equation of a line through a point with a given slope, or through two points.',
+    when: 'Writing the equation of a line: through a point with a given slope (mode "slope"), or through two points (mode "points", e.g. "write the equation of the line through (1, 2) and (3, 8)").',
     spec: {
-      mode: { label: 'Given', hint: '"slope" when the problem gives one point and a slope; "points" when it gives two points.', options: ['slope', 'points'] },
+      mode: { label: 'Given', hint: '"slope" when the problem gives one point and a slope; "points" when it gives two points (the line through them).', options: ['slope', 'points'] },
       x1: num('x₁', 'x of the (first) point.'),
       y1: num('y₁', 'y of the (first) point.'),
       m: { label: 'Slope', hint: 'The slope when mode is "slope": a number or fraction (2, -3/4), or "undefined" for a vertical line. Empty when mode is "points".' },

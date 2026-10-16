@@ -273,7 +273,14 @@ describe('problem detection', () => {
     // Sides only: legs touch the right angle, the hypotenuse doesn't.
     expect(detectProblem('Right triangle ABC has a right angle at C. AB = 13 and AC = 5. Find BC.')).toEqual({ type: 'pythag', inputs: { a: '5', b: '', c: '13' } });
     expect(detectProblem('Triangle XYZ: angle Y = 90, XY = 6, YZ = 8')).toEqual({ type: 'pythag', inputs: { a: '6', b: '8', c: '' } });
-    // An area question about a right triangle is still an area question.
+    // An area question about a right triangle is still an area question; a cylinder isn't a circle.
     expect(detectProblem('Find the area of right triangle ABC with right angle at B, AB = 6, BC = 8')?.type).not.toMatch(/trig|pythag/);
+    expect(detectProblem('Find the volume of a cylinder with radius 3 cm and height 5 cm.')).toBeNull();
+    expect(detectProblem('Find the surface area of a sphere with radius 4')).toBeNull();
+  });
+
+  it('tells a line’s slope from its equation', () => {
+    expect(detectProblem('Find the slope of the line through (1, 2) and (3, 8).')?.type).toBe('slopeFromPoints');
+    expect(detectProblem('Write the equation of the line through (1, 2) and (3, 8).')).toEqual({ type: 'pointSlope', inputs: { mode: 'points', x1: '1', y1: '2', m: '', x2: '3', y2: '8' } });
   });
 });
