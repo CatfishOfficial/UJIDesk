@@ -19,15 +19,26 @@ function outlined(rows: string[]): string[] {
 const ART = FRAMES.map(outlined);
 
 /**
- * A little pixel flame that flickers through its frames. Where and when it shows
- * (now and then, or on hover) is up to the CSS around it: see .has-fire.
+ * A little pixel flame that flickers through its frames. `phase` starts it on a
+ * later frame and `flip` mirrors it, so flames side by side don't move in step.
+ * Where and when it shows (now and then, or on hover) is up to the CSS around
+ * it: see .fire-behind.
  */
-export function PixelFire({ scale = 2 }: { scale?: number }) {
+export function PixelFire({ scale = 2, phase = 0, flip = false }: { scale?: number; phase?: number; flip?: boolean }) {
   const w = ART[0][0].length;
   const h = ART[0].length;
+  const frames = ART.map((_, i) => ART[(i + phase) % ART.length]);
   return (
-    <svg className="pixel pixel-fire" width={w * scale} height={h * scale} viewBox={`0 0 ${w} ${h}`} shapeRendering="crispEdges" aria-hidden="true">
-      {ART.map((rows, i) => (
+    <svg
+      className="pixel pixel-fire"
+      width={w * scale}
+      height={h * scale}
+      viewBox={`0 0 ${w} ${h}`}
+      shapeRendering="crispEdges"
+      aria-hidden="true"
+      style={flip ? { transform: 'scaleX(-1)' } : undefined}
+    >
+      {frames.map((rows, i) => (
         <g key={i} className={`fire-frame fire-frame-${i}`}>
           {pixelRects(rows, PALETTE, 0, 0, `f${i}-`)}
         </g>

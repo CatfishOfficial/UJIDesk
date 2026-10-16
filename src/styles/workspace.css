@@ -864,25 +864,40 @@
   border-color: var(--accent);
   background: var(--accent-soft);
 }
-/* Practice gets a little pixel flame now and then (and on hover), to draw students toward it. */
+/*
+ * Practice gets flames rising from behind its tile now and then (and while
+ * hovered), to draw students toward it. The tool row is its own stacking layer,
+ * so z-index -1 tucks the flames behind the tile but still in front of the card.
+ */
+.quick-tools {
+  isolation: isolate;
+}
 .quick-tool.has-fire {
   position: relative;
 }
-.has-fire .pixel-fire {
+.fire-behind {
   position: absolute;
+  z-index: -1;
+  left: 4px;
+  right: 4px;
   top: -20px;
-  left: 50%;
-  transform: translate(-50%, 6px) scale(0.4);
-  transform-origin: 50% 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
   opacity: 0;
+  transform: translateY(24px);
   pointer-events: none;
   animation: fire-now-and-then 8s ease-out 3s infinite;
 }
-.has-fire:hover .pixel-fire,
-.has-fire:focus-visible .pixel-fire {
+/* The middle flame stands a little taller than the two at the corners. */
+.fire-behind .pixel-fire:nth-child(2) {
+  margin-bottom: 6px;
+}
+.has-fire:hover .fire-behind,
+.has-fire:focus-visible .fire-behind {
   animation: none;
   opacity: 1;
-  transform: translate(-50%, 0) scale(1);
+  transform: translateY(0);
   transition:
     opacity var(--dur-fast) var(--ease),
     transform var(--dur) var(--ease);
@@ -891,17 +906,17 @@
   0%,
   74% {
     opacity: 0;
-    transform: translate(-50%, 6px) scale(0.4);
+    transform: translateY(24px);
   }
-  78%,
+  79%,
   92% {
     opacity: 1;
-    transform: translate(-50%, 0) scale(1);
+    transform: translateY(0);
   }
   97%,
   100% {
     opacity: 0;
-    transform: translate(-50%, -4px) scale(0.6);
+    transform: translateY(10px);
   }
 }
 /* Three frames, each shown for a third of the cycle. */
@@ -923,7 +938,7 @@
     opacity: 0;
   }
 }
-:root[data-motion='reduced'] .has-fire .pixel-fire,
+:root[data-motion='reduced'] .fire-behind,
 :root[data-motion='reduced'] .pixel-fire .fire-frame {
   animation: none;
 }
@@ -931,7 +946,7 @@
   opacity: 0;
 }
 @media (prefers-reduced-motion: reduce) {
-  .has-fire .pixel-fire,
+  .fire-behind,
   .pixel-fire .fire-frame {
     animation: none;
   }

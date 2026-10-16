@@ -133,7 +133,11 @@ export function QuickProblem({ onImport, paused }: { onImport: () => void; pause
           );
         })}
         <button type="button" className="quick-tool has-fire" onClick={() => launch('challenge')} title={TOOLS.challenge.description}>
-          <PixelFire />
+          <span className="fire-behind" aria-hidden="true">
+            <PixelFire phase={1} />
+            <PixelFire />
+            <PixelFire phase={2} flip />
+          </span>
           <PixelIcon name="challenge" size={26} />
           <span>Practice</span>
         </button>
