@@ -8,7 +8,7 @@ import { Redis } from '@upstash/redis';
 // it as an ES module, where Node won't guess extensions (TypeScript and Vite both
 // map .js back to the .ts source).
 import { TOOLS } from '../src/data/tools.js';
-import { RECOGNIZABLE_TOOLS, checkGuess, locateUncertain, type RecognitionKind, type RecognizableTool } from '../src/data/recognitionSchema.js';
+import { RECOGNIZABLE_TOOLS, UI_EXAMPLES, checkGuess, isOwnExample, locateUncertain, type RecognitionKind, type RecognizableTool } from '../src/data/recognitionSchema.js';
 
 /**
  * Reads one math/science problem out of a photo and transcribes it as plain
@@ -86,7 +86,7 @@ function systemPrompt(kind: RecognitionKind | undefined): string {
 
 How to fill in the response:
 - "text": the problem on one line of plain text, the way a student would type it: ^ for powers, sqrt() for roots, / for fractions, - for minus. Keep numbers, variables, letters and units exactly as shown (but write a spelled-out number like "seven" as 7), keep a word problem's wording, and don't correct the student's work. If the photo has several problems, read only one: the one that's circled or marked, otherwise the first complete one.
-- Read only the problem itself. Ignore app or website interface around it (buttons, menus, labels, instructions) and faded placeholder or example text inside input boxes. A screenshot of an app, UJI included, whose only math is that kind of example text has no problem in it.
+- Read only the problem itself. Ignore app or website interface around it (buttons, menus, labels, instructions) and faded placeholder or example text inside input boxes. A screenshot of an app, UJI included, whose only math is that kind of example text has no problem in it; UJI's own grey examples look like "${UI_EXAMPLES.importAny}".
 - "notMath": true only when the photo shows no math or science problem at all; "text" is then empty.
 - "uncertain": one entry per character or short group of characters you can't make out (a 5 that might be an S), in reading order, with "snippet" copied exactly from "text" and "note" giving the other reading. Nothing else goes here, such as doubts about which problem to read. Empty when you can read everything.
 - "structured": the tool for this problem with its fields filled in, whenever one of the tools below fits and the problem gives the values it needs. null only when no tool fits (a proof, a 3D solid, a graph to read, a topic not listed) or the values can't be read — never force a problem into the nearest tool.
@@ -166,12 +166,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    const text = parsed.notMath ? '' : parsed.text.trim();
+    // A screenshot of UJI's own import window or backpack: the only "problem" is its grey example text.
+    const notMath = parsed.notMath || isOwnExample(parsed.text);
+    const text = notMath ? '' : parsed.text.trim();
     res.status(200).json({
       text,
-      notMath: parsed.notMath,
+      notMath,
       uncertain: locateUncertain(text, parsed.uncertain),
-      structured: parsed.notMath || !parsed.structured ? null : checkGuess(parsed.structured.type, parsed.structured.inputs, text),
+      structured: notMath || !parsed.structured ? null : checkGuess(parsed.structured.type, parsed.structured.inputs, text),
     });
   } catch (err) {
     console.error('recognize failed', err);

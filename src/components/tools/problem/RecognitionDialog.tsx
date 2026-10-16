@@ -3,7 +3,7 @@ import { Camera, X, ArrowLeft, Info, Loader2 } from 'lucide-react';
 import { PixelIcon } from '../../ui/pixel-icons/PixelIcon';
 import { HandCircle } from '../../ui/HandDrawn';
 import { TOOL_ICONS } from '../../ui/icons';
-import { RECOGNIZABLE_BY_KIND, RECOGNIZABLE_TOOLS, checkGuess, handPickedInputs, type RecognitionKind, type StructuredGuess, type UncertainSpan } from '../../../data/recognitionSchema';
+import { RECOGNIZABLE_BY_KIND, RECOGNIZABLE_TOOLS, UI_EXAMPLES, checkGuess, handPickedInputs, type RecognitionKind, type StructuredGuess, type UncertainSpan } from '../../../data/recognitionSchema';
 import { TOOLS } from '../../../data/tools';
 
 export type { RecognitionKind };
@@ -24,7 +24,7 @@ interface Props {
 
 type Stage = 'source' | 'camera' | 'review';
 
-const ANY_COPY = { label: 'The problem', placeholder: '3x + 4y = 12, or (2, 3) and (4, 7)' };
+const ANY_COPY = { label: 'The problem', placeholder: UI_EXAMPLES.importAny };
 
 function copyFor(kind: RecognitionKind) {
   return RECOGNIZABLE_BY_KIND[kind] ?? ANY_COPY;

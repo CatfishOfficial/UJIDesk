@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { RECOGNIZABLE_TOOLS, checkGuess, handPickedInputs, locateUncertain } from './recognitionSchema';
+import { RECOGNIZABLE_TOOLS, checkGuess, handPickedInputs, isOwnExample, locateUncertain } from './recognitionSchema';
 import { TOOLS } from './tools';
 import { SHAPES, UNITS } from '../math/geometry';
 import { DECAY } from '../science/decay';
@@ -83,6 +83,20 @@ describe('handPickedInputs', () => {
     expect(handPickedInputs('stats', '1, 2, 3')).toEqual({ list: '1, 2, 3' });
     expect(handPickedInputs('trig', 'In triangle EFD…')).toEqual({ angle: '', opp: '', adj: '', hyp: '' });
     expect(handPickedInputs('area', 'a shape')).toMatchObject({ shape: 'rectangle', l: '', r: '' });
+  });
+});
+
+describe('isOwnExample', () => {
+  it('spots UJI’s own grey examples read off a screenshot, however they’re spaced or punctuated', () => {
+    expect(isOwnExample('3x + 4y = 12, or (2, 3) and (4, 7)')).toBe(true);
+    expect(isOwnExample('3x+4y=12, or (2,3) and (4,7).')).toBe(true);
+    expect(isOwnExample('Like 3x + 4y = 12, x^2 - 5x + 6 = 0, or mean of 3, 7, 9.')).toBe(true);
+  });
+
+  it('leaves real problems alone, even ones that match a single example', () => {
+    expect(isOwnExample('3x + 4y = 12')).toBe(false);
+    expect(isOwnExample('(2, 3) and (4, 7)')).toBe(false);
+    expect(isOwnExample('')).toBe(false);
   });
 });
 

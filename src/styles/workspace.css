@@ -864,6 +864,81 @@
   border-color: var(--accent);
   background: var(--accent-soft);
 }
+/* Practice gets a little pixel flame now and then (and on hover), to draw students toward it. */
+.quick-tool.has-fire {
+  position: relative;
+}
+.has-fire .pixel-fire {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translate(-50%, 6px) scale(0.4);
+  transform-origin: 50% 100%;
+  opacity: 0;
+  pointer-events: none;
+  animation: fire-now-and-then 8s ease-out 3s infinite;
+}
+.has-fire:hover .pixel-fire,
+.has-fire:focus-visible .pixel-fire {
+  animation: none;
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+  transition:
+    opacity var(--dur-fast) var(--ease),
+    transform var(--dur) var(--ease);
+}
+@keyframes fire-now-and-then {
+  0%,
+  74% {
+    opacity: 0;
+    transform: translate(-50%, 6px) scale(0.4);
+  }
+  78%,
+  92% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  97%,
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -4px) scale(0.6);
+  }
+}
+/* Three frames, each shown for a third of the cycle. */
+.pixel-fire .fire-frame {
+  animation: fire-flicker 0.45s steps(1, end) infinite;
+}
+.pixel-fire .fire-frame-1 {
+  animation-delay: -0.3s;
+}
+.pixel-fire .fire-frame-2 {
+  animation-delay: -0.15s;
+}
+@keyframes fire-flicker {
+  0% {
+    opacity: 1;
+  }
+  33.333%,
+  100% {
+    opacity: 0;
+  }
+}
+:root[data-motion='reduced'] .has-fire .pixel-fire,
+:root[data-motion='reduced'] .pixel-fire .fire-frame {
+  animation: none;
+}
+:root[data-motion='reduced'] .pixel-fire .fire-frame:not(.fire-frame-0) {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .has-fire .pixel-fire,
+  .pixel-fire .fire-frame {
+    animation: none;
+  }
+  .pixel-fire .fire-frame:not(.fire-frame-0) {
+    opacity: 0;
+  }
+}
 .backpack-title {
   display: inline-flex;
   align-items: center;

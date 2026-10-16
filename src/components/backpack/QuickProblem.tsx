@@ -5,8 +5,10 @@ import { useUI } from '../../state/ui';
 import { detectProblem, extractPoints, type DetectedProblem } from '../../math/detect';
 import { LayoutGrid } from 'lucide-react';
 import { PixelIcon } from '../ui/pixel-icons/PixelIcon';
+import { PixelFire } from '../ui/PixelFire';
 import { TOOL_ICONS } from '../ui/icons';
 import { TOOLS } from '../../data/tools';
+import { UI_EXAMPLES } from '../../data/recognitionSchema';
 import type { WindowType } from '../../state/types';
 
 type ProblemTool = DetectedProblem['type'];
@@ -116,7 +118,7 @@ export function QuickProblem({ onImport, paused }: { onImport: () => void; pause
         ) : unsure ? (
           <span className="hand quick-unsure">Not sure which tool that is. Pick one:</span>
         ) : (
-          <span className="muted">Like 3x + 4y = 12, x² − 5x + 6 = 0, or mean of 3, 7, 9. Or pick a tool:</span>
+          <span className="muted">Like {UI_EXAMPLES.bag}. Or pick a tool:</span>
         )}
       </p>
 
@@ -130,7 +132,8 @@ export function QuickProblem({ onImport, paused }: { onImport: () => void; pause
             </button>
           );
         })}
-        <button type="button" className="quick-tool" onClick={() => launch('challenge')} title={TOOLS.challenge.description}>
+        <button type="button" className="quick-tool has-fire" onClick={() => launch('challenge')} title={TOOLS.challenge.description}>
+          <PixelFire />
           <PixelIcon name="challenge" size={26} />
           <span>Practice</span>
         </button>

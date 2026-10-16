@@ -215,6 +215,30 @@ export const RECOGNIZABLE_TOOLS: RecognizableTool[] = BASE.map((t) => ({ ...t, f
 
 export const RECOGNIZABLE_BY_KIND: Partial<Record<RecognitionKind, RecognizableTool>> = Object.fromEntries(RECOGNIZABLE_TOOLS.map((t) => [t.kind, t]));
 
+/**
+ * Example text UJI itself shows in grey: the import window's placeholder and the
+ * backpack's hint. Each strings several problems together, so it never turns up
+ * on real homework, only in a screenshot of UJI.
+ */
+export const UI_EXAMPLES = {
+  importAny: '3x + 4y = 12, or (2, 3) and (4, 7)',
+  bag: '3x + 4y = 12, x² − 5x + 6 = 0, or mean of 3, 7, 9',
+} as const;
+
+const plainForm = (t: string) =>
+  t
+    .toLowerCase()
+    .replace(/[−–]/g, '-')
+    .replace(/²/g, '^2')
+    .replace(/^(like|e\.g\.)\s*/, '')
+    .replace(/[\s.]+/g, '');
+
+/** True when a reading is just one of UJI's own grey examples, read off a screenshot of the app. */
+export function isOwnExample(reading: string): boolean {
+  const t = plainForm(reading);
+  return !!t && Object.values(UI_EXAMPLES).some((e) => plainForm(e) === t);
+}
+
 const VULGAR: Record<string, string> = { '½': '1/2', '⅓': '1/3', '⅔': '2/3', '¼': '1/4', '¾': '3/4', '⅕': '1/5', '⅛': '1/8' };
 const SUPERSCRIPT = '⁰¹²³⁴⁵⁶⁷⁸⁹';
 
