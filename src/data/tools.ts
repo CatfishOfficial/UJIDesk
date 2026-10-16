@@ -176,7 +176,7 @@ export const TOOLS: Record<WindowType, ToolMeta> = {
     min: { w: 320, h: 380 },
     resizable: true,
     isTask: true,
-    initialData: () => ({ phase: 'setup', mix: 'mixed', difficulty: 'regular', count: 5 }),
+    initialData: () => ({ phase: 'setup', mix: 'slope', difficulty: 'regular', count: 5 }),
     // Closing a set ends it (no undo), so it can't be closed, solved elsewhere, and reopened.
     hasContent: () => false,
   },

@@ -14,8 +14,8 @@ import {
   setTopics,
   TOPIC_LABEL,
   type ChallengeCheck,
-  type ChallengeMix,
   type ChallengeProblem,
+  type ChallengeTopic,
   type Difficulty,
 } from '../../math/challenge';
 import { parsePointsInput, solveSlopeFromPoints } from '../../math/slopeFromPoints';
@@ -44,7 +44,8 @@ interface Result {
 
 interface ChallengeData extends Record<string, unknown> {
   phase: 'setup' | 'playing' | 'summary';
-  mix: ChallengeMix;
+  /** The topic to practice (the name is from when a Mixed set was also offered). */
+  mix: ChallengeTopic;
   difficulty: Difficulty;
   count: number;
   seed?: number;
@@ -60,7 +61,9 @@ interface ChallengeData extends Record<string, unknown> {
   newStickers?: string[];
 }
 
-const MIXES: { id: ChallengeMix; label: string }[] = [{ id: 'mixed', label: 'Mixed' }, ...ALL_TOPICS.map((t) => ({ id: t, label: TOPIC_LABEL[t] }))];
+const TOPIC_CHOICES = ALL_TOPICS.map((t) => ({ id: t, label: TOPIC_LABEL[t] }));
+/** A Practice window saved back when it could be set to "mixed" comes back on the first topic. */
+const topicOf = (d: ChallengeData): ChallengeTopic => (ALL_TOPICS.includes(d.mix) ? d.mix : ALL_TOPICS[0]);
 const DIFFS: { id: Difficulty; label: string; tip: string }[] = [
   { id: 'gentle', label: 'Gentle', tip: 'Small whole numbers, friendly answers.' },
   { id: 'regular', label: 'Regular', tip: 'Fractions and negatives, the odd special case.' },
@@ -89,7 +92,7 @@ export function ChallengeTool({ winId }: { winId: string }) {
   const totalPoints = useWorkspace((s) => s.progress.tokens);
 
   const problems = useMemo<ChallengeProblem[]>(
-    () => d.custom ?? (d.seed != null ? generateSet(d.mix, d.difficulty, d.count, d.seed) : []),
+    () => d.custom ?? (d.seed != null ? generateSet(topicOf(d), d.difficulty, d.count, d.seed) : []),
     [d.custom, d.seed, d.mix, d.difficulty, d.count],
   );
 
@@ -224,8 +227,8 @@ function Setup({ d, update, start, totalPoints }: { d: ChallengeData; update: (p
       <fieldset className="chal-group">
         <legend className="field-label">Practice</legend>
         <div className="inv-chips">
-          {MIXES.map((m) => (
-            <button key={m.id} type="button" className="chip" aria-pressed={d.mix === m.id} onClick={() => update({ mix: m.id })}>
+          {TOPIC_CHOICES.map((m) => (
+            <button key={m.id} type="button" className="chip" aria-pressed={topicOf(d) === m.id} onClick={() => update({ mix: m.id })}>
               {m.label}
             </button>
           ))}

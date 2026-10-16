@@ -7,7 +7,6 @@ import { fmtPlain } from './lessons';
 import { NEW_TOPICS, TOPICS, type NewTopic, type Spec } from './challengeTopics';
 
 export type ChallengeTopic = 'slope' | 'standard' | NewTopic;
-export type ChallengeMix = ChallengeTopic | 'mixed';
 export type Difficulty = 'gentle' | 'regular' | 'spicy';
 
 export type ChallengeProblem =
@@ -42,14 +41,10 @@ export function rng(seed: number): () => number {
 
 const int = (r: () => number, lo: number, hi: number) => lo + Math.floor(r() * (hi - lo + 1));
 
-export function generateSet(mix: ChallengeMix, difficulty: Difficulty, count: number, seed: number): ChallengeProblem[] {
+export function generateSet(topic: ChallengeTopic, difficulty: Difficulty, count: number, seed: number): ChallengeProblem[] {
   const r = rng(seed);
   const out: ChallengeProblem[] = [];
-  // Mixed sets deal topics like cards, so a set of 10 doesn't repeat one topic three times.
-  let deck: ChallengeTopic[] = [];
   for (let i = 0; i < count; i++) {
-    if (!deck.length) deck = [...ALL_TOPICS].sort(() => r() - 0.5);
-    const topic: ChallengeTopic = mix === 'mixed' ? deck.pop()! : mix;
     const id = `${seed}-${i}`;
     if (topic === 'slope') out.push(genSlope(r, difficulty, id));
     else if (topic === 'standard') out.push(genStandard(r, difficulty, id));

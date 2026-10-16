@@ -7,7 +7,7 @@ import { toPlain, parseMarkup } from './markup';
 import { evaluate, parseExpression, parseGraphable, formatNumber } from './expression';
 import { parseAnswer } from './answers';
 import { buildSlopeLesson, buildStandardLesson } from './lessons';
-import { checkChallenge, generateSet, challengeFields } from './challenge';
+import { ALL_TOPICS, checkChallenge, generateSet, challengeFields } from './challenge';
 import { detectProblem } from './detect';
 
 const R = (s: string) => Rational.parse(s)!;
@@ -225,8 +225,8 @@ describe('answers and lessons', () => {
 
 describe('challenge', () => {
   it('generates valid problems that its own checker can verify', () => {
-    const set = generateSet('mixed', 'regular', 40, 1234);
-    expect(set).toHaveLength(40);
+    const set = ALL_TOPICS.flatMap((t) => generateSet(t, 'regular', 4, 1234));
+    expect(set).toHaveLength(ALL_TOPICS.length * 4);
     for (const p of set) {
       const fields = challengeFields(p);
       expect(fields.length).toBeGreaterThan(0);

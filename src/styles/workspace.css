@@ -798,12 +798,18 @@
   flex: none;
   width: 42px;
   height: 42px;
+  /* The browser's default button padding left the 32px icon only 28px, pushing it right. */
+  padding: 0;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line-strong);
   background: var(--surface-2);
 }
 .quick-import:hover {
   background: var(--surface-3);
+}
+/* The camera sprite sits half a pixel low in its 16×16 grid; lift it to the middle. */
+.quick-import .pixel-icon {
+  transform: translateY(-1px);
 }
 .quick-go {
   height: 42px;
