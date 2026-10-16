@@ -92,7 +92,7 @@ export function QuickProblem({ onImport, paused }: { onImport: () => void; pause
           spellCheck={false}
           autoFocus={!paused}
         />
-        <button type="button" className="quick-import" disabled={paused} onClick={onImport} title="Photo, upload, or paste a screenshot" aria-label="Import a problem from a photo or screenshot">
+        <button type="button" className="quick-import glisten" disabled={paused} onClick={onImport} title="Photo, upload, or paste a screenshot" aria-label="Import a problem from a photo or screenshot">
           <PixelIcon name="camera" size={24} />
         </button>
         <button type="submit" className="btn btn-primary quick-go" disabled={paused || !text.trim()} aria-label="Solve">

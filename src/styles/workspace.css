@@ -8,7 +8,7 @@
 }
 
 /*
- * Settings → Display size scales everything inside here by --ui-scale via a
+ * Settings → Text size scales everything inside here by --ui-scale via a
  * composited transform (not `zoom`, which forces the whole subtree through
  * layout/paint every frame — fine on a small screen, but it's what made
  * transitions and animations stutter or stop on a bigger one). Sized to the
@@ -1866,21 +1866,4 @@ button.arcade-card.is-ready:hover {
 }
 .arrange-hint {
   margin: 2px 0 2px;
-}
-
-.scale-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  align-self: stretch;
-}
-.scale-row input[type='range'] {
-  flex: 1;
-  accent-color: var(--accent);
-}
-.scale-readout {
-  min-width: 44px;
-  text-align: right;
-  font-weight: 650;
-  font-variant-numeric: tabular-nums;
 }

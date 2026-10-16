@@ -67,7 +67,7 @@ export function BackpackOverlay({ compact }: { compact: boolean }) {
   const tokens = useWorkspace((s) => s.progress.tokens);
   const pos = useWorkspace((s) => s.settings.backpackPos) ?? DEFAULT_POS;
   // Subscribed (not just read via currentScale()) so the panel re-renders at its
-  // new position/size the moment the Display size slider moves.
+  // new position/size the moment Text size changes.
   const uiScale = useWorkspace((s) => s.settings.uiScale) ?? 1;
   const [importing, setImporting] = useState(false);
   const [nudged, setNudged] = useState(false);

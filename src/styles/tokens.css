@@ -1,9 +1,8 @@
 :root {
   /* Overall UI scale: multiplies every size (fonts, windows, menus) via a
      transform on .stage in workspace.css. Written by Settings → Accessibility
-     → Text size (Normal/Big/Giant presets) and → Display size (a free slider
-     for testing) — two front ends on the same value, so windows always grow
-     by the same factor as the text inside them. */
+     → Text size (Normal/Big/Giant presets), so windows always grow by the
+     same factor as the text inside them. */
   --ui-scale: 1;
 
   /* Surfaces: a warm whiteboard, crisp white windows */

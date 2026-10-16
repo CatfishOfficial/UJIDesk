@@ -375,9 +375,6 @@ export function SettingsView() {
       <TextSizePresets />
       <p className="muted small">Windows and menus resize to match, so nothing ends up clipped.</p>
 
-      <div className="inv-group-name">Display size</div>
-      <ScaleSlider />
-
       <div className="inv-group-name">Workspace</div>
       <WindowArrangement />
 
@@ -494,9 +491,8 @@ export function StickersView({ compact }: { compact: boolean }) {
 }
 
 /**
- * Settings → Accessibility → Text size. Presets onto the same scale the
- * Display size slider drives below, so text, windows, and everything in them
- * grow together — a window sized for Normal text can't end up clipping Giant
+ * Settings → Accessibility → Text size. Presets for the overall UI scale
+ * (settings.uiScale), so text, windows, and everything in them grow together — a window sized for Normal text can't end up clipping Giant
  * text, since the window grows by exactly the same factor.
  */
 const TEXT_SIZE_PRESETS = [
@@ -520,46 +516,6 @@ function TextSizePresets() {
         ))}
       </div>
     </div>
-  );
-}
-
-/**
- * Settings → Display size. A manual override to test how big windows, text and
- * menus should look on this screen — report back the number and the screen size
- * so it can become the automatic default for screens like this one.
- */
-function ScaleSlider() {
-  const scale = useWorkspace((s) => s.settings.uiScale) ?? 1;
-  const setSettings = useWorkspace((s) => s.setSettings);
-  // The physical screen, not the browser window — it won't change while this
-  // is open, so there's no listener to keep it fresh.
-  const [screen] = useState({ w: window.screen.width, h: window.screen.height });
-  return (
-    <section className="arrange" aria-labelledby="scale-title">
-      <div className="arrange-title" id="scale-title">
-        Display size <span className="muted small">(testing)</span>
-      </div>
-      <p className="muted small">Drag until windows, text and menus look the right size on this screen.</p>
-      <div className="scale-row">
-        <input
-          type="range"
-          min={0.5}
-          max={1.5}
-          step={0.01}
-          value={scale}
-          onChange={(e) => setSettings({ uiScale: Number(e.target.value) })}
-          aria-label="Display size"
-          aria-valuetext={`${Math.round(scale * 100)} percent`}
-        />
-        <span className="scale-readout">{Math.round(scale * 100)}%</span>
-      </div>
-      <p className="muted small">
-        Screen resolution: {screen.w} × {screen.h}px. Worth noting down alongside the percentage above.
-      </p>
-      <button type="button" className="btn btn-sm" onClick={() => setSettings({ uiScale: 1 })} disabled={scale === 1}>
-        <RotateCcw size={13} /> Reset to 100%
-      </button>
-    </section>
   );
 }
 

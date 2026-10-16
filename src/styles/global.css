@@ -65,6 +65,49 @@ button {
   }
 }
 
+/* A sheen that sweeps across the photo-import buttons every few seconds, so students notice they can bring in a photo. */
+.glisten {
+  position: relative;
+  overflow: hidden;
+}
+.glisten::after {
+  content: '';
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: 0;
+  width: 45%;
+  background: linear-gradient(
+    105deg,
+    transparent,
+    color-mix(in srgb, var(--accent) 22%, transparent) 30%,
+    rgb(255 255 255 / 0.8) 50%,
+    color-mix(in srgb, var(--accent) 22%, transparent) 70%,
+    transparent
+  );
+  transform: translateX(-120%) skewX(-18deg);
+  animation: glisten 5.5s ease-in-out 1.2s infinite;
+  pointer-events: none;
+}
+@keyframes glisten {
+  0% {
+    transform: translateX(-120%) skewX(-18deg);
+  }
+  18%,
+  100% {
+    transform: translateX(330%) skewX(-18deg);
+  }
+}
+.glisten:disabled::after,
+:root[data-motion='reduced'] .glisten::after {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .glisten::after {
+    display: none;
+  }
+}
+
 /* ─── Buttons ───────────────────────────────────────── */
 
 .btn {

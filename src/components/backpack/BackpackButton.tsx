@@ -13,8 +13,8 @@ import { BUTTON, DEFAULT_POS, buttonXY, cornerOf, cornerPos, snapToEdge } from '
 export function BackpackButton() {
   const pos = useWorkspace((s) => s.settings.backpackPos) ?? DEFAULT_POS;
   // Subscribed (not just read via currentScale()) so the button re-renders at its
-  // new position the moment the Display size slider moves, not on some later,
-  // unrelated re-render.
+  // new position the moment Text size changes, not on some later, unrelated
+  // re-render.
   const uiScale = useWorkspace((s) => s.settings.uiScale) ?? 1;
   const setSettings = useWorkspace((s) => s.setSettings);
   const nudge = useWorkspace((s) => s.nudge);

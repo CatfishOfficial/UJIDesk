@@ -257,7 +257,7 @@ export function RecognitionDialog({ kind, initialImage, onUse, onClose }: Props)
 
       {stage === 'source' && (
         <div className="recog-sources">
-          <button ref={firstRef} type="button" className="recog-source" onClick={startCamera}>
+          <button ref={firstRef} type="button" className="recog-source glisten" onClick={startCamera}>
             <PixelIcon name="camera" size={30} /> <span>Take a photo</span>
           </button>
           <button type="button" className="recog-source" onClick={() => fileRef.current?.click()}>

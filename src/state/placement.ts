@@ -13,7 +13,7 @@ export interface Rect {
 }
 
 /**
- * The viewport in logical pixels — real pixels divided by the Display size
+ * The viewport in logical pixels — real pixels divided by the overall UI
  * scale (see ./scale). Pass `scale` when the caller already has it (e.g. mid
  * pointer-drag), so this doesn't re-read the --ui-scale custom property.
  */

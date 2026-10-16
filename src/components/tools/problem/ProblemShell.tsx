@@ -167,7 +167,7 @@ export function ProblemShell({ winId, type, solve, renderInputs, emptyInputs, ex
           <span className="sr-only">mode. Switch to {mode === 'cheat' ? 'Lesson' : 'Cheat'}.</span>
         </button>
         <span style={{ flex: 1 }} />
-        <button type="button" className="btn btn-quiet btn-sm" onClick={() => setImporting({ image: null })} title="Photo, upload, or paste a screenshot">
+        <button type="button" className="btn btn-quiet btn-sm glisten" onClick={() => setImporting({ image: null })} title="Photo, upload, or paste a screenshot">
           <Camera size={14} /> Import
         </button>
         {(data.history?.length ?? 0) > 0 && (
