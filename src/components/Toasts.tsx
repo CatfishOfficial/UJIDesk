@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import { useUI } from '../state/ui';
+import { LaunchTip } from './LaunchTip';
 
 export function Toasts() {
   const toasts = useUI((s) => s.toasts);
@@ -26,6 +27,8 @@ export function Toasts() {
           </button>
         </div>
       ))}
+      {/* Last in the column, so any toast stacks above the tip rather than on it. */}
+      <LaunchTip />
     </div>
   );
 }

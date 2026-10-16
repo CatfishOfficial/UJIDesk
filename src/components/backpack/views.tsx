@@ -370,6 +370,10 @@ export function SettingsView() {
         <input type="checkbox" checked={settings.motion === 'reduced'} onChange={(e) => setSettings({ motion: e.target.checked ? 'reduced' : 'system' })} />
         <span>Reduce motion (also follows your system setting)</span>
       </label>
+      <label className="setting">
+        <input type="checkbox" checked={settings.tips !== false} onChange={(e) => setSettings({ tips: e.target.checked })} />
+        <span>Show a tip when UJI opens</span>
+      </label>
 
       <div className="inv-group-name">Accessibility</div>
       <TextSizePresets />

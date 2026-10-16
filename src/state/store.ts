@@ -30,6 +30,9 @@ export interface WorkspaceState {
   /** The backpack opens by itself only on the very first visit. */
   seenWelcome: boolean;
   setSeenWelcome: () => void;
+  /** Which launch tip shows next, so each visit gets a different one. */
+  nextTip: number;
+  advanceTip: () => void;
   /** Tools whose lesson intro has been seen: after the first lesson it starts folded up. */
   introSeen: string[];
   markIntroSeen: (tool: string) => void;
@@ -106,7 +109,7 @@ const initialProgress: Progress = {
   trips: 0,
 };
 
-const initialSettings: Settings = { theme: 'light', grid: true, motion: 'system', backpackPos: { edge: 'bottom', t: 0 }, arrange: DEFAULT_ARRANGE, uiScale: 1 };
+const initialSettings: Settings = { theme: 'light', grid: true, motion: 'system', backpackPos: { edge: 'bottom', t: 0 }, arrange: DEFAULT_ARRANGE, uiScale: 1, tips: true };
 
 const isTaskOpen = (windows: Record<string, Win>) => Object.values(windows).some((w) => TOOLS[w.type].isTask);
 
@@ -125,6 +128,8 @@ export const useWorkspace = create<WorkspaceState>()(
       nudge: false,
       seenWelcome: false,
       setSeenWelcome: () => set({ seenWelcome: true }),
+      nextTip: 0,
+      advanceTip: () => set((s) => ({ nextTip: s.nextTip + 1 })),
       introSeen: [],
       markIntroSeen: (tool) => set((s) => (s.introSeen.includes(tool) ? s : { introSeen: [...s.introSeen, tool] })),
       guideSeen: [],

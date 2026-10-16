@@ -114,4 +114,6 @@ export interface Settings {
   arrange: ArrangeSettings;
   /** Overall UI scale (1 = 100%), set by Settings → Text size. */
   uiScale: number;
+  /** A tip along the bottom of the screen when UJI opens (see LaunchTip). On unless turned off. */
+  tips: boolean;
 }
