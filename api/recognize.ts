@@ -4,17 +4,26 @@ import { zodResponseFormat } from 'openai/helpers/zod';
 import { z } from 'zod/v4';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
-import { RECOGNIZABLE_TOOLS, type RecognitionKind } from '../src/data/recognitionSchema';
+// The .js endings are load-bearing: Vercel compiles each file on its own and runs
+// it as an ES module, where Node won't guess extensions (TypeScript and Vite both
+// map .js back to the .ts source).
+import { TOOLS } from '../src/data/tools.js';
+import { RECOGNIZABLE_TOOLS, checkGuess, locateUncertain, type RecognitionKind, type RecognizableTool } from '../src/data/recognitionSchema.js';
 
 /**
  * Reads one math/science problem out of a photo and transcribes it as plain
  * text — never solves it, never explains it. Optionally names which existing
- * tool and fields it matches, but that guess is re-checked against the real
- * tool registry below before it's trusted with anything: a wrong tool name or
- * an unknown field from the model is dropped, not forwarded.
+ * tool it goes in and fills that tool's fields. The response schema is built
+ * from the tool registry, so the model can only name real tools, fields and
+ * choices, and the guess is still re-checked (checkGuess) before it's
+ * forwarded: a wrong tool or an impossible value is dropped, not passed on.
  */
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Created on first use, after the key check in the handler: the SDK throws when
+// it's constructed without a key, which at module scope would crash every
+// request instead of answering with the friendly "not set up yet" error.
+let client: OpenAI | null = null;
+const openai = () => (client ??= new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 25_000, maxRetries: 1 }));
 
 // Rate limiting needs a store that outlives any one function instance — plain
 // in-memory counters don't work here since Vercel can route requests to any
@@ -39,46 +48,51 @@ function clientIp(req: VercelRequest): string {
   return first?.trim() || (req.headers['x-real-ip'] as string) || 'unknown';
 }
 
-const UncertainSpan = z.object({
-  /** 0-based [start, end) character indices into "text". */
-  start: z.number().int().min(0),
-  end: z.number().int().min(0),
-  note: z.string(),
+// Quoted rather than indexed: the model copies the unsure characters and
+// locateUncertain finds them, since models can't count string positions.
+const UncertainBit = z.object({
+  snippet: z.string().describe('The exact characters from "text" you are unsure about, copied exactly as they appear there.'),
+  note: z.string().describe('What else it could be, briefly (e.g. "could be 5 or S").'),
 });
 
-// An array of {field, value} pairs rather than an open-ended map: OpenAI's
-// strict structured-output mode doesn't support arbitrary additionalProperties,
-// but fixed-shape objects in an array are fully compatible with it.
-const StructuredGuess = z.object({
-  type: z.string(),
-  inputs: z.array(z.object({ field: z.string(), value: z.string() })),
-});
+// One branch per tool, each field described and each choice spelled out, so
+// strict structured output can't produce a tool, field or choice that doesn't
+// exist. Single-value enums rather than literals keep the schema inside what
+// strict mode supports.
+function toolGuess(t: RecognizableTool) {
+  const inputs = Object.fromEntries(
+    t.fields.map((f) => {
+      const { hint, options } = t.spec[f];
+      return [f, (options ? z.enum(options as [string, ...string[]]) : z.string()).describe(hint)];
+    }),
+  );
+  return z.object({ type: z.enum([t.type]), inputs: z.object(inputs) }).describe(TOOLS[t.type].title);
+}
 
 const RecognizeResult = z.object({
   text: z.string(),
   notMath: z.boolean(),
-  uncertain: z.array(UncertainSpan),
-  structured: StructuredGuess.nullable(),
+  uncertain: z.array(UncertainBit),
+  structured: z.union([...RECOGNIZABLE_TOOLS.map(toolGuess), z.null()]),
 });
 
-const VALID_TYPES = new Set(RECOGNIZABLE_TOOLS.map((t) => t.type as string));
-const FIELDS_BY_TYPE = new Map(RECOGNIZABLE_TOOLS.map((t) => [t.type as string, new Set(t.fields)]));
-
 function toolMenu(): string {
-  return RECOGNIZABLE_TOOLS.map((t) => `- "${t.type}" (${t.kind}): fields [${t.fields.join(', ')}] — e.g. "${t.example}"`).join('\n');
+  return RECOGNIZABLE_TOOLS.map((t) => `- "${t.type}": ${TOOLS[t.type].description} e.g. "${t.example}"`).join('\n');
 }
 
 function systemPrompt(kind: RecognitionKind | undefined): string {
   const expected = RECOGNIZABLE_TOOLS.find((t) => t.kind === kind);
-  return `You read one math or science problem from a photo of a student's work (handwritten or printed) and transcribe it as plain text — the way a student would type it. You never solve it, never explain it, never add commentary beyond the transcription.
+  return `You read one math or science problem from a photo (handwritten, printed or a screenshot) for UJI, a homework whiteboard for students. Your job is to transcribe the problem and, when you can, say which of UJI's tools it goes in. You never solve it, hint at the answer or comment on it: UJI's own tools do the math, and the student checks your reading before anything is solved.
 
-Rules:
-- "text": the problem as a single line of plain text (use ^ for exponents, standard operators, sqrt() if needed).
-- "notMath": true only if the photo doesn't show a recognizable math/science problem at all. If true, "text" can be empty.
-- "uncertain": for each character span you're genuinely unsure about, give its 0-based [start, end) index into "text" (JavaScript string index, matching text.slice(start, end)) and a short note on the likely alternative reading. Empty array if you're confident throughout.
-- "structured": ONLY when you're confident which specific tool below matches AND confident of every field value, name that exact tool and give its fields as {field, value} pairs. Otherwise null. A null is always safe here — a wrong guess is not, so don't guess unless you're sure.
+How to fill in the response:
+- "text": the problem on one line of plain text, the way a student would type it: ^ for powers, sqrt() for roots, / for fractions, - for minus. Keep numbers, variables and units exactly as shown, keep a word problem's wording, and don't correct the student's work. If the photo has several problems, read the one that's circled or marked, otherwise the first complete one.
+- "notMath": true only when the photo shows no math or science problem at all; "text" is then empty.
+- "uncertain": one entry per bit you can't read for sure, in reading order, with "snippet" copied exactly from "text". Empty when you're sure of everything.
+- "structured": the tool this problem goes in, with its fields filled from the photo, only when you're sure which tool fits and sure of every value it needs. Otherwise null. Null is always safe (the student just checks the text); a wrong tool or value is not.
 
-Tools you may match in "structured" (type, fields, one example):
+Filling a tool's fields: follow each field's description, write numbers plainly (4, -2.5, 3/4) without units unless the field is for a unit, and leave a field as an empty string when the problem doesn't give it (like the side it asks for). Read values off the photo; never work them out.
+
+UJI's tools:
 ${toolMenu()}
 ${expected ? `\nThe student opened this from "${expected.type}" (expects: ${expected.label.toLowerCase()}), but match whatever the photo actually shows, even if it's a different tool — they may have photographed something else.` : ''}`;
 }
@@ -97,8 +111,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
   if (ratelimit) {
-    const { success } = await ratelimit.limit(clientIp(req));
-    if (!success) {
+    let allowed = true;
+    try {
+      allowed = (await ratelimit.limit(clientIp(req))).success;
+    } catch (err) {
+      // Fails open here too: a Redis hiccup shouldn't take the reader down with it.
+      console.error('rate limit check failed', err);
+    }
+    if (!allowed) {
       res.status(429).json({ error: "That's a lot of photos at once — give it a minute and try again." });
       return;
     }
@@ -117,9 +137,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const completion = await client.chat.completions.parse({
+    const completion = await openai().chat.completions.parse({
       model: 'gpt-5-nano',
-      max_completion_tokens: 600,
+      // gpt-5 models reason before answering, and that counts against
+      // max_completion_tokens: at the default effort it can use up the whole
+      // budget and leave no answer at all. Low effort is plenty for reading.
+      reasoning_effort: 'low',
+      max_completion_tokens: 4000,
       messages: [
         { role: 'system', content: systemPrompt(kind) },
         {
@@ -139,21 +163,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    // Re-validate the model's tool/field guess against the real registry —
-    // never forward a tool name or field it invented.
-    let structured: { type: string; inputs: Record<string, string> } | null = null;
-    if (parsed.structured && VALID_TYPES.has(parsed.structured.type)) {
-      const known = FIELDS_BY_TYPE.get(parsed.structured.type)!;
-      const inputs: Record<string, string> = {};
-      for (const { field, value } of parsed.structured.inputs) if (known.has(field)) inputs[field] = value;
-      if (Object.keys(inputs).length) structured = { type: parsed.structured.type, inputs };
-    }
-
+    const text = parsed.notMath ? '' : parsed.text.trim();
     res.status(200).json({
-      text: parsed.notMath ? '' : parsed.text,
+      text,
       notMath: parsed.notMath,
-      uncertain: parsed.uncertain,
-      structured,
+      uncertain: locateUncertain(text, parsed.uncertain),
+      structured: parsed.notMath || !parsed.structured ? null : checkGuess(parsed.structured.type, parsed.structured.inputs),
     });
   } catch (err) {
     console.error('recognize failed', err);

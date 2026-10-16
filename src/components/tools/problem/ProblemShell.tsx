@@ -12,7 +12,7 @@ import { copyText, openHelper, sendToGraph } from '../bridge';
 import { freshLesson, type Inputs, type LessonState, type ProblemData, type SolvedView } from './types';
 import type { WindowType } from '../../../state/types';
 import { PRACTICE_TOPIC, similarProblem } from '../../../math/similar';
-import type { ProblemType } from '../../../math/detect';
+import { detectProblem, type ProblemType } from '../../../math/detect';
 import { KhanLinks } from './KhanLinks';
 
 export interface InputRenderArgs {
@@ -361,13 +361,20 @@ export function ProblemShell({ winId, type, solve, renderInputs, emptyInputs, ex
                 setInputs(next);
                 submit(next);
               } else {
-                useWorkspace.getState().openWindow(result.structured.type, { data: { inputs: result.structured.inputs, autoSolve: true } });
+                useWorkspace.getState().openWindow(result.structured.type, { near: winId, data: { inputs: result.structured.inputs, autoSolve: true } });
               }
               return;
             }
             const parsed = fromRecognized(result.text);
-            if (parsed) submit(parsed);
-            else {
+            if (parsed) {
+              submit(parsed);
+              return;
+            }
+            // Not this tool's kind of problem: if the shared router knows whose it is, open that one beside it.
+            const other = detectProblem(result.text);
+            if (other && other.type !== type) {
+              useWorkspace.getState().openWindow(other.type, { near: winId, data: { inputs: other.inputs, autoSolve: true } });
+            } else {
               setInputs({ ...emptyInputs, ...(recognition === 'equation' ? { eq: result.text } : {}) });
               setError({ text: "Couldn't turn that into a problem. Check the inputs above." });
             }

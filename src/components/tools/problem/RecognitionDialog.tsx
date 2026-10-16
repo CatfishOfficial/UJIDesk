@@ -2,16 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import { Camera, X, ArrowLeft, Info, Loader2 } from 'lucide-react';
 import { PixelIcon } from '../../ui/pixel-icons/PixelIcon';
 import { HandCircle } from '../../ui/HandDrawn';
-import { RECOGNIZABLE_BY_KIND, type RecognitionKind } from '../../../data/recognitionSchema';
+import { RECOGNIZABLE_BY_KIND, RECOGNIZABLE_TOOLS, checkGuess, type RecognitionKind, type StructuredGuess, type UncertainSpan } from '../../../data/recognitionSchema';
 import { TOOLS } from '../../../data/tools';
-import type { WindowType } from '../../../state/types';
 
 export type { RecognitionKind };
 
 export interface RecognitionResult {
   text: string;
   /** Present only when the reader is confident which tool and fields match. */
-  structured?: { type: WindowType; inputs: Record<string, string> };
+  structured?: StructuredGuess;
 }
 
 interface Props {
@@ -23,16 +22,19 @@ interface Props {
 
 type Stage = 'source' | 'camera' | 'review';
 
-interface UncertainSpan {
-  start: number;
-  end: number;
-  note: string;
-}
-
 const ANY_COPY = { label: 'The problem', placeholder: '3x + 4y = 12, or (2, 3) and (4, 7)' };
 
 function copyFor(kind: RecognitionKind) {
   return RECOGNIZABLE_BY_KIND[kind] ?? ANY_COPY;
+}
+
+/** "Base 1: 4 · Height: 5", skipping blanks, in the tool's own words. */
+function describeGuess(guess: StructuredGuess): string {
+  const spec = RECOGNIZABLE_TOOLS.find((t) => t.type === guess.type)?.spec ?? {};
+  return Object.entries(guess.inputs)
+    .filter(([, value]) => value)
+    .map(([field, value]) => `${spec[field]?.label ?? field}: ${value}`)
+    .join('  ·  ');
 }
 
 /** Shrinks and re-encodes an image (any data: or blob: URL) before it's uploaded. */
@@ -64,10 +66,12 @@ export function RecognitionDialog({ kind, initialImage, onUse, onClose }: Props)
   const [stage, setStage] = useState<Stage>(initialImage ? 'review' : 'source');
   const [image, setImage] = useState<string | null>(null);
   const [text, setText] = useState('');
+  /** The reader's own text, which the circled bits point into; `text` is the student's editable copy. */
+  const [readText, setReadText] = useState('');
   const [reading, setReading] = useState(false);
   const [readError, setReadError] = useState<string | null>(null);
   const [uncertain, setUncertain] = useState<UncertainSpan[]>([]);
-  const [structured, setStructured] = useState<{ type: WindowType; inputs: Record<string, string> } | null>(null);
+  const [structured, setStructured] = useState<StructuredGuess | null>(null);
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -106,6 +110,7 @@ export function RecognitionDialog({ kind, initialImage, onUse, onClose }: Props)
   const recognizeImage = async (dataUrl: string) => {
     setReading(true);
     setReadError(null);
+    setReadText('');
     setUncertain([]);
     setStructured(null);
     try {
@@ -123,9 +128,12 @@ export function RecognitionDialog({ kind, initialImage, onUse, onClose }: Props)
         setReadError("That doesn't look like a problem UJI knows. Type it in below.");
         return;
       }
-      setText(data.text ?? '');
+      const read = typeof data.text === 'string' ? data.text : '';
+      setText(read);
+      setReadText(read);
       setUncertain(Array.isArray(data.uncertain) ? data.uncertain : []);
-      if (data.structured?.type && data.structured?.inputs) setStructured(data.structured);
+      // Checked again here, against this build's tools: an older or newer server can't open a tool wrong.
+      setStructured(data.structured ? checkGuess(data.structured.type, data.structured.inputs) : null);
     } catch {
       setReadError("Couldn't reach the reader. Type it in below.");
     } finally {
@@ -304,7 +312,7 @@ export function RecognitionDialog({ kind, initialImage, onUse, onClose }: Props)
             <div className="recog-reading">
               <span className="tag">UJI's best guess — check it</span>
               <div className="recog-reading-line">
-                {text.split('').map((ch, i) =>
+                {readText.split('').map((ch, i) =>
                   uncertain.some((u) => i >= u.start && i < u.end) ? (
                     <span key={i} className="recog-uncertain">
                       {ch}
@@ -325,11 +333,7 @@ export function RecognitionDialog({ kind, initialImage, onUse, onClose }: Props)
           {!reading && structured && (
             <div className="recog-reading">
               <span className="tag tag-accent">Looks like: {TOOLS[structured.type]?.title ?? structured.type}</span>
-              <p className="muted small">
-                {Object.entries(structured.inputs)
-                  .map(([field, value]) => `${field}: ${value}`)
-                  .join('  ·  ')}
-              </p>
+              <p className="muted small">{describeGuess(structured)}</p>
               <div className="recog-row">
                 <button type="button" className="btn btn-primary btn-sm" onClick={() => onUse({ text, structured })}>
                   Use this

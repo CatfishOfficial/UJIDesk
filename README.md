@@ -118,8 +118,9 @@ src/
     types.ts
   data/
     tools.ts               Window type registry: sizes, chrome, initial data, hasContent
-    recognitionSchema.ts   Which tools/fields the photo reader may name (shared with api/
-                           recognize.ts — pure data, no React, generated from TOOLS)
+    recognitionSchema.ts   Which tools the photo reader may name, a guide to each field and
+                           its allowed choices, and the checks on its answers (shared with
+                           api/recognize.ts — pure data, no React, field names from TOOLS)
     catalog.tsx            Backpack contents, math catalog, calculator models
     stickers.tsx, fish.tsx, pixel.tsx   Pixel-art sprites (swap per sprite, keep grid size)
     decor.tsx              Bowl decor (fish unlocks and rare drops) and fish foods
@@ -173,7 +174,7 @@ src/
 - **Lesson key guides:** give a lesson decision a `calc` expression (`"(−5)² − 4 × 1 × 6"`, `"10 × sin(35)"`; `calcNum` formats exact numbers). The calculator does the rest for whichever model is selected.
 - **Practice topics:** add a `TopicDef` to `math/challengeTopics.ts` (generate, prompt, fields, check, hints, answers). Storing problems as the tool's own inputs means typed "bring your own" problems work for free, and the test suite checks every generated problem against its own answers.
 - **Art:** every icon is one draw function in `PixelIcon.tsx`, and every sprite is a string-row grid with a palette. Either can be replaced one at a time. A new fish only needs a palette and, optionally, an accessory patch.
-- **Recognition:** the reader lives in `api/recognize.ts`; the tools and fields it may suggest are generated from `data/recognitionSchema.ts`, which reads straight from the `TOOLS` registry — a new problem tool becomes recognizable automatically once it's registered there.
+- **Recognition:** the reader lives in `api/recognize.ts`; the tools and fields it may suggest come from `data/recognitionSchema.ts`, whose field names are read straight from the `TOOLS` registry. To make a new problem tool recognizable, add it to `BASE` there with a one-line guide per field (and `options` for any choice field, like a shape) — `recognitionSchema.test.ts` fails until every field has one. The model's response schema is built from that guide, so it can only name real tools, fields and choices, and `checkGuess` re-checks its answer on both the server and the client. Imports reachable from `api/` keep their `.js` endings: Vercel runs those files as plain ES modules.
 - **New fish:** add an entry to `FISH` in `data/fish.tsx` with a rarity, a time (`day`/`night`/`any`), a palette, and optionally an accessory patch and `unlocks`. It appears in the trip pool, catch log and bowl automatically. Prices, casts and odds live at the top of `game/ship.ts`.
 - **New item:** register a type in `data/tools.ts` with `chrome: 'bare'` and an `aspect`, render it as pixel art, add a right-click `ContextMenu` ending in `<ItemMenuFooter/>`, and add it to the *Items* section in `data/catalog.tsx`.
 - **Persistence and sync:** `useWorkspace` uses zustand's `persist` for the live board. Saved desks go through `DeskStorage` in `state/desks.ts` (`read()` / `write()`); call `setDeskStorage()` with a remote adapter to sync desks once accounts exist.
