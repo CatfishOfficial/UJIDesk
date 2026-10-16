@@ -29,7 +29,16 @@ export interface Flags {
   guideSeen: string[];
 }
 
-const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+/**
+ * Deep equality that ignores key order. The account keeps these in Postgres jsonb,
+ * which re-sorts object keys, so an untouched board comes back with its fields in
+ * a different order; comparing JSON text called that a change made elsewhere, and
+ * sync then put the account's older board back over the student's work. Keys whose
+ * value is undefined count as missing, as they do in JSON.
+ */
+const sortedKeys = (_key: string, v: unknown) =>
+  v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, (v as Record<string, unknown>)[k]])) : v;
+export const same = (a: unknown, b: unknown) => JSON.stringify(a, sortedKeys) === JSON.stringify(b, sortedKeys);
 const union = (cloud: string[] = [], local: string[] = []) => [...cloud, ...local.filter((x) => !cloud.includes(x))];
 /** cloud + what this device added since base. Never below zero, so a stale spend can't go negative. */
 const counter = (base = 0, local = 0, cloud = 0) => Math.max(0, cloud + (local - base));

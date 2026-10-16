@@ -70,6 +70,13 @@ interface DesksState {
 
 export const useDesks = create<DesksState>()(() => ({ desks: typeof localStorage === 'undefined' ? [] : storage.read() }));
 
+// Desks saved in another tab of UJI show up here too, rather than this tab writing its old list over them.
+if (typeof window !== 'undefined' && window.addEventListener) {
+  window.addEventListener('storage', (e) => {
+    if (e.key === KEY) useDesks.setState({ desks: storage.read() });
+  });
+}
+
 const commit = (desks: SavedDesk[]) => {
   useDesks.setState({ desks });
   storage.write(desks);
@@ -155,7 +162,8 @@ export function newDesk() {
 export function renameDesk(id: string, name: string) {
   const n = name.trim();
   if (!n) return;
-  commit(useDesks.getState().desks.map((d) => (d.id === id ? { ...d, name: n.slice(0, 60) } : d)));
+  // A rename is a change: account sync keeps whichever copy of a desk was changed last.
+  commit(useDesks.getState().desks.map((d) => (d.id === id ? { ...d, name: n.slice(0, 60), updatedAt: Date.now() } : d)));
 }
 
 export function duplicateDesk(id: string) {

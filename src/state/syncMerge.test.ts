@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mergeBoard, mergeDesks, mergeFlags, mergeProgress, mergeSettings, type Board } from './syncMerge';
+import { mergeBoard, mergeDesks, mergeFlags, mergeProgress, mergeSettings, same, type Board } from './syncMerge';
 import type { Progress, Settings } from './types';
 import type { SavedDesk } from './desks';
 
@@ -114,5 +114,52 @@ describe('two signed-in devices', () => {
     expect(r.desks.find((d) => d.id === 'renamedThere')?.name).toBe('Algebra');
     expect(r.upload.map((d) => d.id)).toEqual(['newHere']);
     expect(r.remove).toEqual(['deletedHere']);
+  });
+});
+
+/** What Postgres jsonb does to an object on the way back: keys re-sorted, shortest first. */
+const jsonbOrder = (v: unknown): unknown =>
+  Array.isArray(v)
+    ? v.map(jsonbOrder)
+    : v && typeof v === 'object'
+      ? Object.fromEntries(
+          Object.keys(v)
+            .sort((a, b) => a.length - b.length || (a < b ? -1 : a > b ? 1 : 0))
+            .map((k) => [k, jsonbOrder((v as Record<string, unknown>)[k])]),
+        )
+      : v;
+
+describe('a copy that went through the account unchanged', () => {
+  const withInputs = (eq: string): Board => ({
+    ...emptyBoard,
+    windows: { 'std-1': { id: 'std-1', type: 'standardToSlope', x: 40, y: 40, w: 440, h: 560, z: 11, minimized: false, maximized: false, data: { inputs: { eq }, solved: null, history: [] } } as never },
+  });
+
+  it('counts as the same even with its keys in another order', () => {
+    expect(same({ a: 1, b: { c: 2, d: [1, 2] } }, { b: { d: [1, 2], c: 2 }, a: 1 })).toBe(true);
+    expect(same({ a: 1, gone: undefined }, { a: 1 })).toBe(true);
+    expect(same([1, 2], [2, 1])).toBe(false);
+    expect(same(withInputs('x'), jsonbOrder(withInputs('x')))).toBe(true);
+  });
+
+  it('keeps what the student just typed instead of putting the old board back', () => {
+    // Synced with an empty box; the student types; the account still has the empty box, re-sorted by jsonb.
+    const base = withInputs('');
+    const typed = withInputs('3x + 4y = 12');
+    expect(mergeBoard(base, typed, jsonbOrder(base) as Board)).toEqual({ board: typed, keepLocalAsDesk: false });
+  });
+
+  it('keeps a window the student just opened', () => {
+    const base = withInputs('');
+    const opened: Board = { ...base, windows: { ...base.windows, 'calc-2': { id: 'calc-2', type: 'calculator', x: 0, y: 0, w: 300, h: 460, z: 12, minimized: false, maximized: false, data: {} } as never }, zTop: 12 };
+    expect(mergeBoard(base, opened, jsonbOrder(base) as Board).board).toBe(opened);
+  });
+
+  it('leaves an unchanged desk alone', () => {
+    const d = desk('d1', 5);
+    const r = mergeDesks({ d1: 5 }, [d], [jsonbOrder(d) as SavedDesk]);
+    expect(r.upload).toEqual([]);
+    expect(r.remove).toEqual([]);
+    expect(r.desks).toHaveLength(1);
   });
 });

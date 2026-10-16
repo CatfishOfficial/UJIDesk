@@ -1,10 +1,10 @@
 import { supabase } from './supabase';
-import { initialProgress, initialSettings, uid, useWorkspace } from './store';
-import { replaceDesks, useDesks, type DeskSnapshot, type SavedDesk } from './desks';
+import { initialProgress, initialSettings, uid, useWorkspace, type WorkspaceState } from './store';
+import { localDeskStorage, replaceDesks, useDesks, type DeskSnapshot, type SavedDesk } from './desks';
 import { signOut, useAccount } from './account';
 import { useUI } from './ui';
 import { viewport } from './placement';
-import { boardHasContent, mergeBoard, mergeDesks, mergeFlags, mergeProgress, mergeSettings, type Board, type Flags } from './syncMerge';
+import { boardHasContent, mergeBoard, mergeDesks, mergeFlags, mergeProgress, mergeSettings, same, type Board, type Flags } from './syncMerge';
 import type { Progress, Settings } from './types';
 
 /**
@@ -57,8 +57,6 @@ const DEBOUNCE_MS = 2000;
 const MAX_WAIT_MS = 15000;
 /** Away at least this long, and coming back checks for changes from other devices. */
 const STALE_MS = 30000;
-
-const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 function readRecord(): SyncRecord | null {
   try {
@@ -117,15 +115,27 @@ function deskFromBoard(b: Board): SavedDesk {
 
 const hasAnything = (p: Payload, desks: SavedDesk[]) => !same(p.progress, initialProgress) || boardHasContent(p.board) || desks.length > 0;
 
-/** Puts a payload on screen; only touches the board if it actually differs, since loading one resets focus. */
+/**
+ * Puts a payload on screen, touching only what actually differs: reloading the
+ * board resets focus and refits every window, so it happens only when the
+ * windows, ink or stickers themselves changed.
+ */
 function apply(p: Payload) {
-  const ws = useWorkspace.getState();
-  useWorkspace.setState({ progress: p.progress, settings: p.settings, ...p.flags });
-  if (!same(currentPayload().board, p.board)) {
-    const { windows, zTop, strokes, stickers, mode, deskId, recent, recentlyClosed } = p.board;
-    ws.loadBoard({ windows, zTop, strokes, stickers, mode }, deskId);
-    useWorkspace.setState({ recent, recentlyClosed });
+  const cur = currentPayload();
+  const patch: Partial<WorkspaceState> = {};
+  if (!same(cur.progress, p.progress)) patch.progress = p.progress;
+  if (!same(cur.settings, p.settings)) patch.settings = p.settings;
+  if (!same(cur.flags, p.flags)) Object.assign(patch, p.flags);
+  const { windows, zTop, strokes, stickers, mode, deskId, recent, recentlyClosed } = p.board;
+  if (!same(cur.board.recent, recent)) patch.recent = recent;
+  if (!same(cur.board.recentlyClosed, recentlyClosed)) patch.recentlyClosed = recentlyClosed;
+  const core = (b: Board) => ({ windows: b.windows, zTop: b.zTop, strokes: b.strokes, stickers: b.stickers, mode: b.mode, deskId: b.deskId });
+  if (!same(core(cur.board), core(p.board))) {
+    useWorkspace.getState().loadBoard({ windows, zTop, strokes, stickers, mode }, deskId);
+    // loadBoard empties the closed list; put the synced one back.
+    patch.recentlyClosed = recentlyClosed;
   }
+  if (Object.keys(patch).length) useWorkspace.setState(patch);
 }
 
 function setStatus(sync: 'idle' | 'saving' | 'saved' | 'offline' | 'error') {
@@ -154,6 +164,15 @@ let applying = false;
 let running: Promise<void> | null = null;
 let again = false;
 
+/**
+ * Every tab of UJI in this browser shares one saved copy and one sync record, so
+ * only one may sync at a time; otherwise two tabs merge from the same stale record
+ * and count the same new tokens twice. The lock spans tabs (Web Locks); a browser
+ * without it just runs unguarded.
+ */
+const withSyncLock = (fn: () => Promise<void>): Promise<void> =>
+  typeof navigator !== 'undefined' && navigator.locks ? navigator.locks.request('uji-sync', fn) : fn();
+
 /** One sync, queued behind any already running so two never interleave. */
 export function syncNow(): Promise<void> {
   if (running) {
@@ -163,7 +182,7 @@ export function syncNow(): Promise<void> {
   running = (async () => {
     do {
       again = false;
-      await syncOnce();
+      await withSyncLock(syncOnce);
     } while (again);
   })().finally(() => {
     running = null;
@@ -175,6 +194,14 @@ async function syncOnce() {
   const userId = useAccount.getState().userId;
   if (!supabase || !userId) return;
   setStatus('saving');
+  // Start from the latest saved copy: another tab may have changed it since this tab last looked.
+  applying = true;
+  try {
+    await useWorkspace.persist.rehydrate();
+    useDesks.setState({ desks: localDeskStorage.read() });
+  } finally {
+    applying = false;
+  }
   let rec = readRecord();
   // Someone else's stuff, left behind when their session ended without signing out:
   // it isn't this student's to keep, and their own copy is safe in their account.

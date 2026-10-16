@@ -510,6 +510,16 @@ export const useWorkspace = create<WorkspaceState>()(
   ),
 );
 
+// Another tab of UJI saved: take its copy. Without this each tab kept working from its own
+// stale copy and the last one to save overwrote the other's work (and, signed in, its
+// account: a stale tab could sync an old token count over newly earned tokens).
+// Rehydrating doesn't save back, so tabs can't echo each other.
+if (typeof window !== 'undefined' && window.addEventListener) {
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'uji.workspace' && e.newValue) void useWorkspace.persist.rehydrate();
+  });
+}
+
 export function useWindowData<T extends Record<string, unknown>>(id: string): [T, (patch: Partial<T> | ((d: T) => Partial<T>)) => void] {
   const data = useWorkspace((s) => s.windows[id]?.data) as T;
   const update = useWorkspace((s) => s.updateData);
