@@ -1271,6 +1271,96 @@ body.is-placing * {
 .is-compact .toasts {
   bottom: 84px;
 }
+/* ─── Accounts ─────────────────────────────────────── */
+
+/* Above the backpack (70) and toasts (80): the dialog is the one thing to answer. */
+.auth-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 88;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: color-mix(in srgb, var(--ink) 28%, transparent);
+  animation: rise-in var(--dur) var(--ease);
+}
+.auth-dialog {
+  width: min(380px, 100%);
+  max-height: calc(100dvh / var(--ui-scale, 1) - 32px);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 18px 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: var(--shadow-3);
+}
+.auth-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.auth-head h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 650;
+}
+.auth-dialog .muted.small {
+  margin: 0;
+}
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.auth-password {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.auth-password .field {
+  padding-right: 38px;
+}
+.auth-password .btn-icon {
+  position: absolute;
+  right: 3px;
+}
+.auth-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.auth-done {
+  margin: 4px 0;
+  line-height: 1.45;
+}
+.auth-switch {
+  margin: 0;
+  color: var(--ink-2);
+}
+.account {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.account .muted.small,
+.account-who {
+  margin: 0;
+}
+.account-who {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 /* The launch tip: small plain text under any toasts, not a toast itself. */
 .launch-tip {
   pointer-events: auto;

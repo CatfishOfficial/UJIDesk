@@ -10,6 +10,7 @@ import { ARCADE } from '../../data/arcade';
 import { TOOLS } from '../../data/tools';
 import { RARITY } from '../../game/ship';
 import { InventoryGrid, type InventoryItem } from '../ui/InventoryGrid';
+import { AccountSection } from '../account/AccountSection';
 import { ModeSwitch } from '../ModeSwitch';
 import { PixelIcon } from '../ui/pixel-icons/PixelIcon';
 import { TOOL_ICONS } from '../ui/icons';
@@ -337,6 +338,7 @@ export function SettingsView() {
   return (
     <div className="bag-view">
       <h3 className="bag-h3">Settings</h3>
+      <AccountSection />
       <div className="setting-row">
         <span>Appearance</span>
         <div className="seg" role="radiogroup" aria-label="Appearance">

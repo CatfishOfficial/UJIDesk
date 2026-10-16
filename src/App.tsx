@@ -11,6 +11,8 @@ import { StickerLayer } from './components/StickerLayer';
 import { InkLayer, DrawingSurface } from './components/drawing/DrawingLayer';
 import { GuideLayer } from './components/windows/GuideLayer';
 import { BoardMenu } from './components/BoardMenu';
+import { AuthDialog } from './components/account/AuthDialog';
+import { startAccount } from './state/account';
 import { DEFAULT_ARRANGE } from './state/snap';
 import type { CSSProperties } from 'react';
 
@@ -48,6 +50,7 @@ export default function App() {
       ws.setSeenWelcome();
     }
     ws.clampAll();
+    startAccount();
   }, []);
 
   // Keep every window reachable when the screen size changes.
@@ -120,6 +123,7 @@ export default function App() {
         <DrawingSurface />
         <BackpackButton />
         <BackpackOverlay compact={compact} />
+        <AuthDialog />
         <Toasts />
       </div>
     </div>

@@ -104,7 +104,8 @@ export function BackpackOverlay({ compact }: { compact: boolean }) {
     if (!open) return;
     const onDown = (e: PointerEvent) => {
       const t = e.target as HTMLElement;
-      if (panelRef.current?.contains(t) || t.closest('.bp-button')) return;
+      // The account dialog opens from Settings; using it shouldn't close the bag behind it.
+      if (panelRef.current?.contains(t) || t.closest('.bp-button, .auth-backdrop')) return;
       setBackpack(false);
     };
     window.addEventListener('pointerdown', onDown);
