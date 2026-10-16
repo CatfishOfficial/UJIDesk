@@ -193,7 +193,7 @@ const BASE: Omit<RecognizableTool, 'fields'>[] = [
     when: 'An arithmetic or geometric sequence: the next term, the nth term, or a sum.',
     spec: {
       terms: { label: 'Terms', hint: 'The given terms in order, comma-separated (e.g. 3, 7, 11, 15).' },
-      n: { label: 'Find term', hint: 'Which term number the problem asks for, as a whole number (10 for "the 10th term"). Empty if it doesn\'t ask for one.' },
+      n: { label: 'Find term', hint: 'Only a term number the problem names, as a whole number (10 for "the 10th term", 12 for "a12"). Empty for "the next term", a sum, or anything else — never count terms to work one out.' },
     },
   },
   {
@@ -215,24 +215,39 @@ export const RECOGNIZABLE_TOOLS: RecognizableTool[] = BASE.map((t) => ({ ...t, f
 
 export const RECOGNIZABLE_BY_KIND: Partial<Record<RecognitionKind, RecognizableTool>> = Object.fromEntries(RECOGNIZABLE_TOOLS.map((t) => [t.kind, t]));
 
+const VULGAR: Record<string, string> = { '½': '1/2', '⅓': '1/3', '⅔': '2/3', '¼': '1/4', '¾': '3/4', '⅕': '1/5', '⅛': '1/8' };
+const SUPERSCRIPT = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+
+/** The numbers written in some text, so "x²", "½" and "3.0" compare equal to "x^2", "1/2" and "3". */
+function numbersIn(text: string): Set<string> {
+  const plain = text
+    .replace(/[½⅓⅔¼¾⅕⅛]/g, (c) => ` ${VULGAR[c]} `)
+    .replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]+/g, (m) => `^${[...m].map((c) => SUPERSCRIPT.indexOf(c)).join('')}`);
+  return new Set((plain.match(/\d*\.?\d+/g) ?? []).map((n) => String(Number(n))));
+}
+
 /**
  * Checks a reader's tool guess against the real registry before anything trusts
  * it: a known tool, only that tool's own fields, and every field present, blank
  * if not given. A choice field has to hold one of its choices — a shape the
  * area tool doesn't know would break it, and a made-up default would quietly
- * open the wrong problem — so otherwise the whole guess goes. Null when there's
- * nothing left worth opening a tool for.
+ * open the wrong problem — so otherwise the whole guess goes. Given the reading
+ * too, a field holding a number the problem never mentions is cleared: that
+ * number was worked out or made up, not read (counting to "term 5" for "the
+ * next term", a side found by Pythagoras). Null when there's nothing left worth
+ * opening a tool for.
  */
-export function checkGuess(type: unknown, inputs: unknown): StructuredGuess | null {
+export function checkGuess(type: unknown, inputs: unknown, reading?: string): StructuredGuess | null {
   const tool = RECOGNIZABLE_TOOLS.find((t) => t.type === type);
   if (!tool || !inputs || typeof inputs !== 'object') return null;
   const given = inputs as Record<string, unknown>;
+  const seen = reading === undefined ? null : numbersIn(reading);
   const out: Record<string, string> = {};
   for (const f of tool.fields) {
     const v = typeof given[f] === 'string' ? (given[f] as string).trim() : '';
     const options = tool.spec[f].options;
     if (options && !options.includes(v)) return null;
-    out[f] = v;
+    out[f] = !options && seen && [...numbersIn(v)].some((n) => !seen.has(n)) ? '' : v;
   }
   // A shape or mode with no numbers to go with it isn't a problem yet.
   return tool.fields.some((f) => !tool.spec[f].options && out[f]) ? { type: tool.type, inputs: out } : null;

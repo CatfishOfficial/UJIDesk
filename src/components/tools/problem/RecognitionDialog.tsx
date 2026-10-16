@@ -142,7 +142,7 @@ export function RecognitionDialog({ kind, initialImage, onUse, onClose }: Props)
       setReadText(read);
       setUncertain(Array.isArray(data.uncertain) ? data.uncertain : []);
       // Checked again here, against this build's tools: an older or newer server can't open a tool wrong.
-      setStructured(data.structured ? checkGuess(data.structured.type, data.structured.inputs) : null);
+      setStructured(data.structured ? checkGuess(data.structured.type, data.structured.inputs, read) : null);
     } catch {
       setReadError("Couldn't reach the reader. Type it in below.");
     } finally {

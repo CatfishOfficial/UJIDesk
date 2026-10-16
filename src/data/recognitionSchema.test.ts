@@ -57,6 +57,19 @@ describe('checkGuess', () => {
     expect(checkGuess('pointSlope', { x1: '1', y1: '2', m: '3' })).toBeNull();
   });
 
+  it('clears numbers the problem never mentions, given the reading', () => {
+    // "The next term" isn't term 5: the reader counted that out itself.
+    expect(checkGuess('sequences', { terms: '3, 7, 11, 15', n: '5' }, 'Find the next term: 3, 7, 11, 15, ...')?.inputs).toEqual({ terms: '3, 7, 11, 15', n: '' });
+    expect(checkGuess('sequences', { terms: '3, 7, 11, 15', n: '10' }, 'Find the 10th term of 3, 7, 11, 15')?.inputs.n).toBe('10');
+    // A side worked out by Pythagoras goes; the read ones stay.
+    expect(checkGuess('trig', { angle: '42', opp: '', adj: '12', hyp: '16.15' }, 'right angle at F, EF = 12, ∠E = 42°')?.inputs).toEqual({ angle: '42', opp: '', adj: '12', hyp: '' });
+    // Written differently is still the same number.
+    expect(checkGuess('quadratic', { eq: 'x^2 - 5x + 6 = 0' }, 'Solve x² − 5x + 6 = 0')?.inputs.eq).toBe('x^2 - 5x + 6 = 0');
+    expect(checkGuess('pointSlope', { mode: 'slope', x1: '-2', y1: '3', m: '1/2', x2: '', y2: '' }, 'slope ½ through (−2, 3.0)')?.inputs).toMatchObject({ x1: '-2', y1: '3', m: '1/2' });
+    // Nothing read at all: no guess.
+    expect(checkGuess('pythag', { a: '3', b: '4', c: '' }, 'a right triangle')).toBeNull();
+  });
+
   it('refuses a guess with nothing to solve', () => {
     expect(checkGuess('area', { shape: 'circle', unit: 'cm' })).toBeNull();
     expect(checkGuess('stats', { list: '   ' })).toBeNull();
