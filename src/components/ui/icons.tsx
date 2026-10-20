@@ -17,6 +17,7 @@ const TOOL_XP: Record<WindowType, PixelIconName> = {
   clock: 'clock',
   periodicTable: 'periodic',
   nuclearDecay: 'atom',
+  electronConfig: 'orbitals',
   pointSlope: 'pointSlope',
   systems: 'systems',
   quadratic: 'quadratic',

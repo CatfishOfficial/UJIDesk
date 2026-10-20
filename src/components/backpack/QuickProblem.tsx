@@ -18,6 +18,7 @@ const SHORT: Record<string, string> = {
   standardToSlope: 'Standard → y = mx + b',
   slopeFromPoints: 'Slope from two points',
   nuclearDecay: 'Nuclear decay',
+  electronConfig: 'Electron configuration',
   pointSlope: 'Point-slope form',
   systems: 'Systems of equations',
   quadratic: 'Quadratic formula',

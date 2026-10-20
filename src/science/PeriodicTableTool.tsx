@@ -1,7 +1,7 @@
 import { Fragment, useMemo, useRef, useState } from 'react';
-import { Atom, Copy, Search, X } from 'lucide-react';
+import { Atom, Copy, Orbit, Search, X } from 'lucide-react';
 import { useWindowData, useWorkspace } from '../state/store';
-import { CATEGORY_LABEL, ELEMENTS, electronConfig, type Category, type Element } from './elements';
+import { CATEGORY_LABEL, ELEMENTS, blockOf, electronConfig, type Category, type Element } from './elements';
 import { copyText } from '../components/tools/bridge';
 
 interface TableData extends Record<string, unknown> {
@@ -37,7 +37,6 @@ function Config({ text }: { text: string }) {
 }
 
 const fmtMass = (e: Element) => (e.stable ? String(e.mass) : `[${e.mass}]`);
-const block = (e: Element) => (e.group === null ? 'f' : e.group <= 2 || e.z === 2 ? 's' : e.group >= 13 ? 'p' : 'd');
 
 export function PeriodicTableTool({ winId }: { winId: string }) {
   const [d, update] = useWindowData<TableData>(winId);
@@ -81,6 +80,17 @@ export function PeriodicTableTool({ winId }: { winId: string }) {
   };
 
   /** Sends the element to the nuclear decay tool, reusing an open one. */
+  /** Sends the element to the electron configuration solver, reusing an open one (and keeping its Long/Short choice). */
+  const electrons = (e: Element) => {
+    const existing = Object.values(useWorkspace.getState().windows).find((w) => w.type === 'electronConfig');
+    const form = ((existing?.data.inputs as Record<string, string> | undefined)?.form ?? 'long') as string;
+    const inputs = { el: e.symbol, charge: '', form };
+    if (existing) {
+      updateData(existing.id, { inputs, autoSolve: true });
+      restore(existing.id);
+    } else openWindow('electronConfig', { data: { inputs, autoSolve: true }, near: winId });
+  };
+
   const decay = (e: Element) => {
     const inputs = { el: e.symbol, a: String(Math.round(e.mass)), type: '' };
     const existing = Object.values(useWorkspace.getState().windows).find((w) => w.type === 'nuclearDecay');
@@ -179,10 +189,12 @@ export function PeriodicTableTool({ winId }: { winId: string }) {
                     {shown.period} · {shown.group ?? (shown.category === 'lanthanide' ? 'lanthanides' : 'actinides')}
                   </dd>
                   <dt>Block</dt>
-                  <dd>{block(shown)}</dd>
+                  <dd>{blockOf(shown)}</dd>
                   <dt>Electrons</dt>
                   <dd>
-                    <Config text={electronConfig(shown.z)} />
+                    <button type="button" className="pt-config-link" onClick={() => electrons(shown)} title="Open in the electron configuration solver: long and short forms, steps, orbital boxes">
+                      <Config text={electronConfig(shown.z)} />
+                    </button>
                     {shown.z >= 104 && <span className="muted small"> (predicted)</span>}
                   </dd>
                 </dl>
@@ -190,6 +202,9 @@ export function PeriodicTableTool({ winId }: { winId: string }) {
                   <div className="pt-actions">
                     <button type="button" className="btn btn-sm" onClick={() => copyText(`${shown.name} (${shown.symbol}), Z = ${shown.z}, ${fmtMass(shown)}`, 'Copied')}>
                       <Copy size={13} /> Copy
+                    </button>
+                    <button type="button" className="btn btn-sm" onClick={() => electrons(shown)} title="Work out its electron configuration, long and short, with steps">
+                      <Orbit size={13} /> Electrons
                     </button>
                     <button type="button" className="btn btn-sm" onClick={() => decay(shown)} title="Open in the nuclear decay tool">
                       <Atom size={13} /> Decay it

@@ -228,6 +228,19 @@ export const TOOLS: Record<WindowType, ToolMeta> = {
     initialData: () => ({ inputs: { el: '', a: '', type: '' }, solved: null, history: [], showWork: true, lesson: null, previous: null }),
     hasContent: (d) => hasArray(d.history) || Object.values((d.inputs as Record<string, string>) ?? {}).some(nonEmpty),
   },
+  electronConfig: {
+    type: 'electronConfig',
+    title: 'Electron configuration',
+    description: 'Atoms and ions, long form and noble-gas short form, with steps.',
+    tip: 'Where every electron lives, and why it moved in there.',
+    size: { w: 480, h: 660 },
+    min: { w: 340, h: 340 },
+    resizable: true,
+    isTask: true,
+    initialData: () => ({ inputs: { el: '', charge: '', form: 'long' }, solved: null, history: [], showWork: true, lesson: null, previous: null }),
+    // The Long/Short choice is a setting, not content.
+    hasContent: (d) => hasArray(d.history) || Object.entries((d.inputs as Record<string, string>) ?? {}).some(([k, v]) => k !== 'form' && nonEmpty(v)),
+  },
   pointSlope: problemTool(
     'pointSlope',
     'Point-slope form',

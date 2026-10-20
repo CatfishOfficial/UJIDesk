@@ -8,6 +8,7 @@ import { TripOnDaShip } from '../../game/TripOnDaShip';
 import { ClockItem } from '../../items/ClockItem';
 import { PeriodicTableTool } from '../../science/PeriodicTableTool';
 import { NuclearDecayTool } from '../../science/NuclearDecayTool';
+import { ElectronConfigTool } from '../../science/ElectronConfigTool';
 import { StandardToSlopeTool } from '../tools/StandardToSlopeTool';
 import { SlopeFromPointsTool } from '../tools/SlopeFromPointsTool';
 import { CalculatorTool } from '../tools/CalculatorTool';
@@ -61,6 +62,8 @@ function body(win: Win): ReactNode {
       return <PeriodicTableTool winId={win.id} />;
     case 'nuclearDecay':
       return <NuclearDecayTool winId={win.id} />;
+    case 'electronConfig':
+      return <ElectronConfigTool winId={win.id} />;
     case 'pointSlope':
       return <PointSlopeTool winId={win.id} />;
     case 'systems':

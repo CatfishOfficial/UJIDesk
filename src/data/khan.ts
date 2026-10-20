@@ -96,4 +96,11 @@ export const KHAN = {
     K('video', 'Types of decay (incl. positron emission)', 'https://www.khanacademy.org/science/in-in-class-12th-physics-india/nuclei/in-in-nuclear-physics/v/types-of-decay'),
     K('video', 'Nuclear stability and nuclear equations', 'https://www.khanacademy.org/v/nuclear-stability-and-nuclear-equations'),
   ],
+  electrons: [
+    K('video', 'Introduction to electron configurations', 'https://www.khanacademy.org/science/ap-chemistry-beta/x2eef969c74e0d802:atomic-structure-and-properties/x2eef969c74e0d802:atomic-structure-and-electron-configuration/v/introduction-to-electron-configurations'),
+    K('video', 'Electron configurations with the periodic table', 'https://www.khanacademy.org/science/hs-chemistry/x2613d8165d88df5e:atomic-models-and-periodicity/x2613d8165d88df5e:the-quantum-model/v/electron-configurations-with-the-periodic-table'),
+    K('video', 'Electron configurations of ions', 'https://www.khanacademy.org/science/hs-chemistry/x2613d8165d88df5e:atomic-models-and-periodicity/x2613d8165d88df5e:the-quantum-model/v/electron-configurations-of-ions'),
+    K('video', 'Electron configurations of the 3d transition metals', 'https://www.khanacademy.org/science/chemistry/atomic-structure-and-properties/electron-configurations-jay-sal/v/electron-configurations-in-the-3d-orbitals'),
+    K('practice', 'Electron configurations', 'https://www.khanacademy.org/science/physical-chemistry-essentials/x98cdf762ed888601:structure-of-atom/x98cdf762ed888601:electronic-configuration-of-atom/e/electron-configurations-exercise'),
+  ],
 } satisfies Record<string, KhanLink[]>;

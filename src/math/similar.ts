@@ -17,6 +17,10 @@ const DECAYS: Record<string, [string, string][]> = {
   positron: [['Na', '22'], ['F', '18'], ['C', '11'], ['O', '15'], ['N', '13'], ['Cu', '64'], ['Ne', '19'], ['Mg', '23']],
 };
 
+// Everyday homework atoms and ions (no exceptions, so "another like this" practises the plain method).
+const ATOMS = ['N', 'O', 'F', 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'K', 'Ca', 'Sc', 'Ti', 'V', 'Mn', 'Fe', 'Co', 'Ni', 'Zn', 'Ga', 'As', 'Se', 'Br', 'Rb', 'Sr', 'Zr', 'Sn', 'I', 'Ba'];
+const IONS: [string, string][] = [['Na', '1+'], ['Mg', '2+'], ['Al', '3+'], ['K', '1+'], ['Ca', '2+'], ['O', '2-'], ['F', '1-'], ['Cl', '1-'], ['S', '2-'], ['N', '3-'], ['Br', '1-'], ['Fe', '2+'], ['Fe', '3+'], ['Co', '2+'], ['Ni', '2+'], ['Zn', '2+'], ['Mn', '2+'], ['Sn', '2+']];
+
 /** Which practice topic a tool's problems belong to. */
 export const PRACTICE_TOPIC: Partial<Record<ProblemType, ChallengeTopic>> = {
   standardToSlope: 'standard',
@@ -90,6 +94,17 @@ export function similarProblem(type: ProblemType, current: Inputs, seed = Math.f
       return fresh(() => {
         const s = TOPICS.sequences.generate(r, withN ? 'spicy' : 'regular');
         return { terms: s.terms, n: withN ? s.n || String(8 + Math.floor(r() * 10)) : '' };
+      });
+    }
+    case 'electronConfig': {
+      const form = current.form || 'long';
+      const ion = !!(current.charge ?? '').trim();
+      return fresh(() => {
+        if (ion) {
+          const [el, charge] = IONS[Math.floor(r() * IONS.length)];
+          return { el, charge, form };
+        }
+        return { el: ATOMS[Math.floor(r() * ATOMS.length)], charge: '', form };
       });
     }
     case 'nuclearDecay': {

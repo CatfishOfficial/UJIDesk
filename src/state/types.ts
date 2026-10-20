@@ -16,6 +16,7 @@ export type WindowType =
   | 'clock'
   | 'periodicTable'
   | 'nuclearDecay'
+  | 'electronConfig'
   | 'pointSlope'
   | 'systems'
   | 'quadratic'

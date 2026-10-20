@@ -361,6 +361,20 @@ const DRAW = {
     c.vline(6, 12, 14, 'K');
     c.vline(9, 12, 14, 'K');
   },
+  orbitals: (c: Canvas) => {
+    // three orbital boxes: paired, paired, one up (Hund's rule), with half-arrows
+    c.hline(0, 15, 4, 'K');
+    c.hline(0, 15, 11, 'K');
+    for (const x of [0, 5, 10, 15]) c.vline(x, 4, 11, 'K');
+    for (const x0 of [1, 6, 11]) {
+      c.vline(x0 + 1, 6, 10, 'b');
+      c.px(x0, 7, 'b');
+    }
+    for (const x0 of [1, 6]) {
+      c.vline(x0 + 2, 5, 9, 'r');
+      c.px(x0 + 3, 8, 'r');
+    }
+  },
   atom: (c: Canvas) => {
     for (let y = 0; y < 16; y++)
       for (let x = 0; x < 16; x++) {

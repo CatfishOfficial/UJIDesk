@@ -45,6 +45,7 @@ export const BACKPACK_ITEMS: BackpackItem[] = [
   tool('timer', 'Instruments'),
   tool('periodicTable', 'Science', { keywords: ['chemistry', 'elements', 'electron configuration'] }),
   tool('nuclearDecay', 'Science', { keywords: ['alpha', 'beta', 'positron', 'radioactive', 'physics', 'chemistry'] }),
+  tool('electronConfig', 'Science', { name: 'Electron config', keywords: ['electron configuration', 'orbitals', 'aufbau', 'noble gas', 'shorthand', 'ions', 'chemistry'] }),
   {
     id: 'sciCalc',
     name: 'Scientific calculator',
@@ -181,6 +182,15 @@ export const MATH_CATALOG: CatalogItem[] = [
     category: 'Science',
     keywords: ['alpha', 'beta', 'positron', 'radioactive', 'isotope', 'physics', 'chemistry'],
     opens: 'nuclearDecay',
+  },
+  {
+    id: 'electronConfig',
+    name: 'Electron configuration',
+    description: 'Long and short (noble-gas) configurations for atoms and ions, with steps and orbital boxes.',
+    icon: icon('electronConfig'),
+    category: 'Science',
+    keywords: ['electron configuration', 'orbitals', 'aufbau', 'noble gas', 'shorthand', 'ion', 'chemistry'],
+    opens: 'electronConfig',
   },
   {
     id: 'sciCalc',

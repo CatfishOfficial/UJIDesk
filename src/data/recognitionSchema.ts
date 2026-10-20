@@ -8,7 +8,7 @@ import { TOOLS } from './tools.js';
  * the model's prompt and response schema, and to validate whatever it comes back
  * with). Keeping it dependency-free is what makes that second import safe.
  */
-export type RecognitionKind = 'equation' | 'points' | 'any' | 'nuclear' | 'pointSlope' | 'system' | 'quadratic' | 'factoring' | 'pythag' | 'area' | 'trig' | 'list' | 'sequence';
+export type RecognitionKind = 'equation' | 'points' | 'any' | 'nuclear' | 'electron' | 'pointSlope' | 'system' | 'quadratic' | 'factoring' | 'pythag' | 'area' | 'trig' | 'list' | 'sequence';
 
 export interface RecognizableField {
   /** Short name for the review step ("Base 1: 4"). */
@@ -207,6 +207,19 @@ const BASE: Omit<RecognizableTool, 'fields'>[] = [
       el: { label: 'Element', hint: 'The parent element\'s symbol (e.g. Po).' },
       a: { label: 'Mass number', hint: 'The parent\'s mass number, a whole number (e.g. 210).' },
       type: { label: 'Decay', hint: '"alpha"; "beta" for beta-minus (electron) emission; "positron" for beta-plus (positron) emission.', options: ['alpha', 'beta', 'positron'] },
+    },
+  },
+  {
+    type: 'electronConfig',
+    kind: 'electron',
+    label: 'The atom or ion',
+    placeholder: 'electron configuration of Fe3+',
+    example: 'electron configuration of Fe3+',
+    when: 'Writing the electron configuration (full, noble-gas shorthand, or orbital notation) of an atom or ion.',
+    spec: {
+      el: { label: 'Atom or ion', hint: 'The element\'s symbol only (e.g. Fe), without the charge.' },
+      charge: { label: 'Charge', hint: 'The ion\'s charge as written, like 2+ or 3- (1+ for a single plus). Empty for a neutral atom.' },
+      form: { label: 'Form', hint: '"short" when the problem asks for noble-gas, shorthand, abbreviated or condensed notation; otherwise "long".', options: ['long', 'short'] },
     },
   },
 ];

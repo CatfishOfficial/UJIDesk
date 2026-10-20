@@ -1,11 +1,13 @@
 import { parseLinearEquation } from './linear';
 import { parseDecayType, parseNuclide } from '../science/decay';
+import { readElectronProblem } from '../science/electrons';
 import { degree, parsePoly } from './poly';
 import { parseNumberList } from './surd';
 import { solveSequence } from './sequences';
 
 export type ProblemType =
   | 'nuclearDecay'
+  | 'electronConfig'
   | 'standardToSlope'
   | 'slopeFromPoints'
   | 'pointSlope'
@@ -162,6 +164,12 @@ export function detectProblem(text: string): DetectedProblem | null {
   const t = text.trim();
   if (!t) return null;
   const s = t.toLowerCase();
+
+  // "electron configuration of Fe3+", "Cl noble gas notation", "orbital notation for sulfur"
+  if (/electron(ic)?\s+config|\be(lectron)?\.?\s*config\b|orbital (diagram|notation)|noble[- ]gas (notation|configuration|shorthand)/.test(s)) {
+    const e = readElectronProblem(t);
+    if (e) return { type: 'electronConfig', inputs: e };
+  }
 
   // "Po-210 alpha decay", "beta decay of C-14", "Na-22 positron emission"
   const decay = parseDecayType(t);

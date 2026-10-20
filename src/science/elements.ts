@@ -219,9 +219,9 @@ export function elementByZ(z: number): Element | null {
 
 /* ── Electron configuration ───────────────────────── */
 
-const ORDER = ['1s', '2s', '2p', '3s', '3p', '4s', '3d', '4p', '5s', '4d', '5p', '6s', '4f', '5d', '6p', '7s', '5f', '6d', '7p'];
-const CAPACITY: Record<string, number> = { s: 2, p: 6, d: 10, f: 14 };
-const NOBLE_CORES: [number, string][] = [
+export const ORDER = ['1s', '2s', '2p', '3s', '3p', '4s', '3d', '4p', '5s', '4d', '5p', '6s', '4f', '5d', '6p', '7s', '5f', '6d', '7p'];
+export const CAPACITY: Record<string, number> = { s: 2, p: 6, d: 10, f: 14 };
+export const NOBLE_CORES: [number, string][] = [
   [86, 'Rn'],
   [54, 'Xe'],
   [36, 'Kr'],
@@ -231,7 +231,7 @@ const NOBLE_CORES: [number, string][] = [
 ];
 
 /** Well-known ground-state exceptions to the Aufbau (Madelung) order. */
-const EXCEPTIONS: Record<string, string> = {
+export const EXCEPTIONS: Record<string, string> = {
   Cr: '[Ar] 4s1 3d5',
   Cu: '[Ar] 4s1 3d10',
   Nb: '[Kr] 5s1 4d4',
@@ -275,3 +275,6 @@ export function electronConfig(z: number): string {
   }
   return (core ? `[${core[1]}] ` : '') + parts.join(' ');
 }
+
+/** The block an element sits in on the table (the f-block rows count as f). */
+export const blockOf = (e: Element): 's' | 'p' | 'd' | 'f' => (e.group === null ? 'f' : e.group <= 2 || e.z === 2 ? 's' : e.group >= 13 ? 'p' : 'd');

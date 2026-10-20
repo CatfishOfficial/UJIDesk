@@ -540,6 +540,7 @@ export const SOLVER_TYPES: WindowType[] = [
   'stats',
   'sequences',
   'nuclearDecay',
+  'electronConfig',
 ];
 
 /** True while a Challenge set is in progress (even minimized), so the solvers can't be used to cheat. */
