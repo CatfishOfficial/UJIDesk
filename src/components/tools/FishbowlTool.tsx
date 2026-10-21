@@ -133,6 +133,7 @@ export function FishbowlTool({ winId }: { winId: string }) {
       ref={rootRef}
       className="bowl-object"
       tabIndex={0}
+      title="Right-click to switch fish"
       aria-label={`${fish ? `${fish.name} in a fishbowl` : 'An empty fishbowl'}. Enter says hi; the menu key or Shift+F10 opens tank options; arrow keys move it.`}
       onContextMenu={(e) => {
         e.preventDefault();

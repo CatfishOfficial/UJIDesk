@@ -155,7 +155,7 @@ export const TOOLS: Record<WindowType, ToolMeta> = {
   fishbowl: {
     type: 'fishbowl',
     title: 'Fishbowl',
-    description: 'Your selected fish, idling quietly.',
+    description: 'Your selected fish, idling quietly. Right-click the bowl to switch fish.',
     tip: 'Low maintenance. Emotionally, medium maintenance.',
     size: { w: 300, h: 225 },
     min: { w: 140, h: 105 },
