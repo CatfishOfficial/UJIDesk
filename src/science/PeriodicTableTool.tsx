@@ -1,11 +1,12 @@
 import { Fragment, useMemo, useRef, useState } from 'react';
 import { Atom, Copy, Orbit, Search, X } from 'lucide-react';
 import { useWindowData, useWorkspace } from '../state/store';
-import { CATEGORY_LABEL, ELEMENTS, blockOf, electronConfig, type Category, type Element } from './elements';
+import { CATEGORY_LABEL, ELEMENTS, blockOf, electronConfig, elementList, type Category, type Element } from './elements';
 import { copyText } from '../components/tools/bridge';
 
 interface TableData extends Record<string, unknown> {
-  selected: number | null;
+  /** Atomic numbers of the picked elements, in the order picked. Older saves hold one number. */
+  selected: number[] | number | null;
   q: string;
   highlight: Category | null;
 }
@@ -37,6 +38,10 @@ function Config({ text }: { text: string }) {
 }
 
 const fmtMass = (e: Element) => (e.stable ? String(e.mass) : `[${e.mass}]`);
+const caption = (e: Element) => `${e.name} (${e.symbol}), Z = ${e.z}, ${fmtMass(e)}`;
+
+/** The search text for a picked list; a lone element keeps its comma so the box stays a list. */
+const listText = (zs: number[]) => (zs.length === 1 ? `${ELEMENTS[zs[0] - 1].symbol},` : zs.map((z) => ELEMENTS[z - 1].symbol).join(', '));
 
 export function PeriodicTableTool({ winId }: { winId: string }) {
   const [d, update] = useWindowData<TableData>(winId);
@@ -46,19 +51,40 @@ export function PeriodicTableTool({ winId }: { winId: string }) {
   const gridRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<number | null>(null);
   const q = (d.q ?? '').trim().toLowerCase();
-  const selected = d.selected ? ELEMENTS[d.selected - 1] : null;
-  const shown = selected ?? (hover ? ELEMENTS[hover - 1] : null);
+  /** "Fe, Cu, O" in the search box picks those elements instead of filtering. */
+  const isList = q.includes(',');
+  const picked = useMemo(() => (Array.isArray(d.selected) ? d.selected : d.selected ? [d.selected] : []), [d.selected]);
+  const pickedEls = picked.map((z) => ELEMENTS[z - 1]).filter(Boolean);
+  const selected = pickedEls.length === 1 ? pickedEls[0] : null;
+  const shown = pickedEls.length > 1 ? null : (selected ?? (hover ? ELEMENTS[hover - 1] : null));
 
   const matches = useMemo(() => {
-    if (!q) return null;
+    if (!q || isList) return null;
     return new Set(
       ELEMENTS.filter((e) => e.symbol.toLowerCase() === q || e.name.toLowerCase().includes(q) || String(e.z) === q).map((e) => e.z),
     );
-  }, [q]);
+  }, [q, isList]);
 
-  const dimmed = (e: Element) => (matches ? !matches.has(e.z) : d.highlight ? e.category !== d.highlight : false);
+  const dimmed = (e: Element) =>
+    isList ? !picked.includes(e.z) : matches ? !matches.has(e.z) : d.highlight ? e.category !== d.highlight : false;
 
-  const select = (z: number) => update({ selected: d.selected === z ? null : z });
+  const search = (text: string) =>
+    update(text.includes(',') ? { q: text, selected: elementList(text).map((e) => e.z), highlight: null } : { q: text });
+
+  /** A click picks just this element (or unpicks it); shift-click adds it to, or takes it out of, the picked set. */
+  const pick = (z: number, add: boolean) => {
+    const next = add
+      ? picked.includes(z)
+        ? picked.filter((p) => p !== z)
+        : [...picked, z]
+      : picked.length === 1 && picked[0] === z
+        ? []
+        : [z];
+    // A typed list follows shift-clicks; a plain click starts over.
+    update({ selected: next, ...(isList ? { q: add && next.length ? listText(next) : '' } : {}) });
+  };
+
+  const clear = () => update({ selected: [], ...(isList ? { q: '' } : {}) });
 
   /** Arrow keys walk the table, skipping empty cells and the gap above the f-block. */
   const move = (e: Element, key: string) => {
@@ -105,8 +131,14 @@ export function PeriodicTableTool({ winId }: { winId: string }) {
       <div className="pt-top">
         <label className="inv-search pt-search">
           <Search size={15} aria-hidden="true" />
-          <span className="sr-only">Find an element</span>
-          <input type="search" value={d.q ?? ''} onChange={(e) => update({ q: e.target.value })} placeholder="Find an element" />
+          <span className="sr-only">Find an element, or list several separated by commas</span>
+          <input
+            type="search"
+            value={d.q ?? ''}
+            onChange={(e) => search(e.target.value)}
+            placeholder="Find, or list: Fe, Cu, O"
+            title="Type one element to find it, or several separated by commas to pick them all"
+          />
         </label>
         <div className="pt-legend" role="group" aria-label="Highlight a category">
           {CATEGORIES.map((c) => (
@@ -130,9 +162,9 @@ export function PeriodicTableTool({ winId }: { winId: string }) {
               key={e.z}
               type="button"
               data-z={e.z}
-              className={`pt-el cat-${e.category} ${dimmed(e) ? 'is-dim' : ''} ${d.selected === e.z ? 'is-selected' : ''}`}
+              className={`pt-el cat-${e.category} ${dimmed(e) ? 'is-dim' : ''} ${picked.includes(e.z) ? 'is-selected' : ''}`}
               style={{ gridRow: e.row, gridColumn: e.col }}
-              onClick={() => select(e.z)}
+              onClick={(ev) => pick(e.z, ev.shiftKey || ev.ctrlKey || ev.metaKey)}
               onMouseEnter={() => setHover(e.z)}
               onMouseLeave={() => setHover(null)}
               onKeyDown={(ev) => {
@@ -158,8 +190,44 @@ export function PeriodicTableTool({ winId }: { winId: string }) {
           <span className="pt-spacer" style={{ gridRow: 8, gridColumn: '1 / -1' }} aria-hidden="true" />
         </div>
 
-        <aside className={`pt-detail ${shown ? '' : 'is-empty'}`} aria-live="polite">
-          {shown ? (
+        <aside className={`pt-detail ${shown || pickedEls.length ? '' : 'is-empty'} ${pickedEls.length > 1 ? 'is-multi' : ''}`} aria-live="polite">
+          {pickedEls.length > 1 ? (
+            <div className="pt-multi">
+              <div className="pt-info-name">
+                {pickedEls.length} elements
+                <button type="button" className="btn btn-quiet btn-sm btn-icon" onClick={clear} aria-label="Clear selection">
+                  <X size={13} />
+                </button>
+              </div>
+              <ul className="pt-picks">
+                {pickedEls.map((e) => (
+                  <li key={e.z} className="pt-pick">
+                    <span className={`pt-mini cat-${e.category}`} aria-hidden="true">
+                      <span className="pt-z">{e.z}</span>
+                      {e.symbol}
+                    </span>
+                    <div className="pt-pick-text">
+                      <div className="pt-pick-name">{e.name}</div>
+                      <div className="pt-pick-facts">
+                        {fmtMass(e)} · {blockOf(e)}-block · {CATEGORY_LABEL[e.category]}
+                      </div>
+                      <button type="button" className="pt-config-link pt-pick-config" onClick={() => electrons(e)} title="Open in the electron configuration solver">
+                        <Config text={electronConfig(e.z)} />
+                      </button>
+                    </div>
+                    <button type="button" className="btn btn-quiet btn-sm btn-icon" onClick={() => pick(e.z, true)} aria-label={`Unpick ${e.name}`}>
+                      <X size={12} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <div className="pt-actions">
+                <button type="button" className="btn btn-sm" onClick={() => copyText(pickedEls.map(caption).join('\n'), 'Copied')}>
+                  <Copy size={13} /> Copy all
+                </button>
+              </div>
+            </div>
+          ) : shown ? (
             <>
               <div className={`pt-card cat-${shown.category}`}>
                 <span className="pt-z">{shown.z}</span>
@@ -170,7 +238,7 @@ export function PeriodicTableTool({ winId }: { winId: string }) {
                 <div className="pt-info-name">
                   {shown.name}
                   {selected && (
-                    <button type="button" className="btn btn-quiet btn-sm btn-icon" onClick={() => update({ selected: null })} aria-label="Clear selection">
+                    <button type="button" className="btn btn-quiet btn-sm btn-icon" onClick={clear} aria-label="Clear selection">
                       <X size={13} />
                     </button>
                   )}
@@ -200,7 +268,7 @@ export function PeriodicTableTool({ winId }: { winId: string }) {
                 </dl>
                 {selected && (
                   <div className="pt-actions">
-                    <button type="button" className="btn btn-sm" onClick={() => copyText(`${shown.name} (${shown.symbol}), Z = ${shown.z}, ${fmtMass(shown)}`, 'Copied')}>
+                    <button type="button" className="btn btn-sm" onClick={() => copyText(caption(shown), 'Copied')}>
                       <Copy size={13} /> Copy
                     </button>
                     <button type="button" className="btn btn-sm" onClick={() => electrons(shown)} title="Work out its electron configuration, long and short, with steps">
@@ -214,7 +282,9 @@ export function PeriodicTableTool({ winId }: { winId: string }) {
               </div>
             </>
           ) : (
-            <p className="muted small">Point at an element to peek; click to pin it.</p>
+            <p className="muted small">
+              Point at an element to peek; click to pin it. Shift-click to pick several, or search a list like <b>Fe, Cu, O</b>.
+            </p>
           )}
         </aside>
       </div>

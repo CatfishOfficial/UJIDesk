@@ -2530,7 +2530,8 @@ p.problem-error {
 .cat-unknown { --cat: #a9a7b2; }
 .pt-el,
 .pt-chip,
-.pt-card {
+.pt-card,
+.pt-mini {
   --cat-bg: color-mix(in srgb, var(--cat) 24%, var(--surface));
   --cat-edge: color-mix(in srgb, var(--cat) 55%, var(--surface));
 }
@@ -2597,6 +2598,8 @@ p.problem-error {
   grid-template-rows: repeat(7, auto) 8px repeat(2, auto);
   gap: 2px;
   align-content: start;
+  /* shift-click picks several; don't let it drag a text selection across the table */
+  user-select: none;
 }
 .pt-el {
   position: relative;
@@ -2743,6 +2746,78 @@ p.problem-error {
   gap: 6px;
   margin-top: 10px;
   flex-wrap: wrap;
+}
+/* Several picked: a list that scrolls on its own instead of stretching the table. */
+.pt-detail.is-multi {
+  min-height: 0;
+  max-height: 100%;
+}
+.pt-multi {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  min-height: 0;
+}
+.pt-multi .pt-actions {
+  margin-top: 0;
+}
+.pt-picks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 6px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+}
+.pt-pick {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.pt-mini {
+  position: relative;
+  width: 40px;
+  aspect-ratio: 1;
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding-top: 6px;
+  border-radius: 8px;
+  border: 1px solid var(--cat-edge);
+  background: var(--cat-bg);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+}
+.pt-mini .pt-z {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.pt-pick-text {
+  flex: 1;
+  min-width: 0;
+}
+.pt-pick-name {
+  font-size: 13.5px;
+  font-weight: 650;
+}
+.pt-pick-facts {
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+.pt-pick-config {
+  margin-top: 2px;
+  font-size: 12px;
 }
 
 /* ─── New problem tools: shared inputs ─────────────── */

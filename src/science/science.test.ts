@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ELEMENTS, electronConfig, findElement } from './elements';
+import { ELEMENTS, electronConfig, elementList, findElement } from './elements';
 import { parseDecayType, parseNuclide, solveDecay } from './decay';
 import { toPlain } from '../math/markup';
 
@@ -23,6 +23,15 @@ describe('periodic table', () => {
     expect(el('sulphur').symbol).toBe('S');
     expect(el('92').symbol).toBe('U');
     expect(findElement('Xx')).toBeNull();
+  });
+  it('reads a comma-separated list of elements, partly typed or not', () => {
+    const syms = (s: string) => elementList(s).map((e) => e.symbol);
+    expect(syms('Fe, Cu, oxygen')).toEqual(['Fe', 'Cu', 'O']);
+    expect(syms('na,cl')).toEqual(['Na', 'Cl']);
+    expect(syms('Fe, , xyz, fe, 8')).toEqual(['Fe', 'O']);
+    expect(syms('Fe, Co')).toEqual(['Fe', 'Co']);
+    expect(syms('Fe, Cop')).toEqual(['Fe', 'Cu']);
+    expect(syms('Fe,')).toEqual(['Fe']);
   });
   it('writes electron configurations, including the usual exceptions', () => {
     expect(electronConfig(1)).toBe('1s1');

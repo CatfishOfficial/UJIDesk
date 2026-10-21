@@ -213,6 +213,23 @@ export function findElement(raw: string): Element | null {
   return BY_SYMBOL[s] ?? ELEMENTS.find((e) => e.name.toLowerCase() === s) ?? BY_SYMBOL[ALIASES[s]] ?? null;
 }
 
+/** Best guess for a partly typed element: an exact match first, then a name that starts with it, then one that contains it. */
+export function guessElement(raw: string): Element | null {
+  const s = raw.trim().toLowerCase();
+  if (!s) return null;
+  return findElement(s) ?? ELEMENTS.find((e) => e.name.toLowerCase().startsWith(s)) ?? ELEMENTS.find((e) => e.name.toLowerCase().includes(s)) ?? null;
+}
+
+/** "Fe, Cu, oxygen" → those elements in the order typed, skipping repeats and terms that match nothing. */
+export function elementList(raw: string): Element[] {
+  const out: Element[] = [];
+  for (const term of raw.split(',')) {
+    const e = guessElement(term);
+    if (e && !out.includes(e)) out.push(e);
+  }
+  return out;
+}
+
 export function elementByZ(z: number): Element | null {
   return ELEMENTS[z - 1] ?? null;
 }
