@@ -213,7 +213,7 @@ export const TOOLS: Record<WindowType, ToolMeta> = {
     size: { w: 840, h: 540 },
     min: { w: 520, h: 380 },
     resizable: true,
-    initialData: () => ({ selected: [], q: '', highlight: null }),
+    initialData: () => ({ selected: [], q: '', highlight: [], overlay: 'category', compare: 'radius' }),
     hasContent: () => false,
   },
   nuclearDecay: {
