@@ -96,6 +96,24 @@ export function findPlacement(size: { w: number; h: number }, others: Win[], nea
   return best;
 }
 
+/**
+ * Puts a window wholly on screen as it opens or comes back, since its saved spot
+ * can be off screen (parked at an edge, or saved on a bigger display). A window
+ * already in full view stays put; one that isn't moves only as far as it must,
+ * and shrinks only if it can't fit at all. `aspect` keeps an item's proportions.
+ */
+export function bringOnScreen(win: Pick<Win, 'x' | 'y' | 'w' | 'h'>, aspect?: number): Pick<Win, 'x' | 'y' | 'w' | 'h'> {
+  const { vw, vh } = viewport();
+  let { w, h } = fitSize(win.w, aspect ? win.w / aspect : win.h);
+  if (aspect) {
+    w = Math.min(w, h * aspect);
+    h = w / aspect;
+  }
+  const into = (p: number, size: number, room: number, endGap: number) =>
+    p >= 0 && p + size <= room ? p : Math.max(MARGIN, Math.min(p, room - size - endGap));
+  return { x: Math.round(into(win.x, w, vw, MARGIN)), y: Math.round(into(win.y, h, vh, DOCK_SPACE)), w: Math.round(w), h: Math.round(h) };
+}
+
 /** Keeps at least the title bar reachable after the viewport shrinks. */
 export function clampToViewport(win: Win): Pick<Win, 'x' | 'y' | 'w' | 'h'> {
   const { vw, vh } = viewport();

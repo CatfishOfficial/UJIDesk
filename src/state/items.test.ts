@@ -22,6 +22,29 @@ describe('desk items', () => {
     expect(Object.keys(useWorkspace.getState().windows)).toHaveLength(1);
   });
 
+  it('comes back on screen even if it was saved off it', () => {
+    const inView = (id: string) => {
+      const w = useWorkspace.getState().windows[id];
+      return w.x >= 0 && w.y >= 0 && w.x + w.w <= 1280 && w.y + w.h <= 800;
+    };
+    // The bowl is one per desk, so asking for it again brings back the same one.
+    const bowl = useWorkspace.getState().openWindow('fishbowl');
+    useWorkspace.getState().setRect(bowl, { x: 1900, y: 1100 });
+    useWorkspace.getState().minimize(bowl);
+    expect(useWorkspace.getState().openWindow('fishbowl')).toBe(bowl);
+    expect(inView(bowl)).toBe(true);
+    // Even when it's already out, just hanging off the edge.
+    useWorkspace.getState().setRect(bowl, { x: -150, y: 760 });
+    useWorkspace.getState().openWindow('fishbowl');
+    expect(inView(bowl)).toBe(true);
+
+    const calc = useWorkspace.getState().openWindow('calculator');
+    useWorkspace.getState().setRect(calc, { x: 1250, y: -40 });
+    useWorkspace.getState().minimize(calc);
+    useWorkspace.getState().restore(calc);
+    expect(inView(calc)).toBe(true);
+  });
+
   it('with one already out, you can still take out another', () => {
     const ws = useWorkspace.getState();
     const a = ws.openWindow('clock');

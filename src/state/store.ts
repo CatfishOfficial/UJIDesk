@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { AssistMode, PlacedSticker, Progress, RecentProblem, Settings, Stroke, Win, WindowType } from './types';
 import { TOOLS } from '../data/tools';
-import { clampToViewport, findPlacement, findStickerSpot, fitSize, viewport, DOCK_SPACE } from './placement';
+import { bringOnScreen, clampToViewport, findPlacement, findStickerSpot, fitSize, viewport, DOCK_SPACE } from './placement';
 import { currentScale } from './scale';
 import { DEFAULT_ARRANGE } from './snap';
 import { tidyLayout } from './tidy';
@@ -157,7 +157,7 @@ export const useWorkspace = create<WorkspaceState>()(
               zTop: s.zTop + 1,
               windows: {
                 ...s.windows,
-                [existing.id]: { ...existing, minimized: false, z: s.zTop + 1, data: opts.data ? { ...existing.data, ...opts.data } : existing.data },
+                [existing.id]: { ...existing, ...bringOnScreen(existing, meta.aspect), minimized: false, z: s.zTop + 1, data: opts.data ? { ...existing.data, ...opts.data } : existing.data },
               },
             }));
             useUI.getState().setFocused(existing.id);
@@ -176,7 +176,7 @@ export const useWorkspace = create<WorkspaceState>()(
             const spot = at ? findPlacement({ w: tucked.w, h: tucked.h }, others, near, at) : { x: tucked.x, y: tucked.y };
             set((s) => ({
               zTop: s.zTop + 1,
-              windows: { ...s.windows, [tucked.id]: { ...tucked, ...clampToViewport({ ...tucked, ...spot }), minimized: false, z: s.zTop + 1 } },
+              windows: { ...s.windows, [tucked.id]: { ...tucked, ...bringOnScreen({ ...tucked, ...spot }, meta.aspect), minimized: false, z: s.zTop + 1 } },
             }));
             if (opts.focus !== false) useUI.getState().setFocused(tucked.id);
             return tucked.id;
@@ -230,7 +230,7 @@ export const useWorkspace = create<WorkspaceState>()(
         if (!win) return;
         set((s) => ({
           zTop: s.zTop + 1,
-          windows: { ...s.windows, [id]: { ...win, ...clampToViewport(win), minimized: false, z: s.zTop + 1 } },
+          windows: { ...s.windows, [id]: { ...win, ...bringOnScreen(win, TOOLS[win.type].aspect), minimized: false, z: s.zTop + 1 } },
           recentlyClosed: s.recentlyClosed.filter((w) => w.id !== id),
         }));
         useUI.getState().setFocused(id);
@@ -258,7 +258,7 @@ export const useWorkspace = create<WorkspaceState>()(
       restore: (id) => {
         set((s) =>
           s.windows[id]
-            ? { zTop: s.zTop + 1, windows: { ...s.windows, [id]: { ...s.windows[id], minimized: false, z: s.zTop + 1 } } }
+            ? { zTop: s.zTop + 1, windows: { ...s.windows, [id]: { ...s.windows[id], ...bringOnScreen(s.windows[id], TOOLS[s.windows[id].type].aspect), minimized: false, z: s.zTop + 1 } } }
             : s,
         );
         useUI.getState().setFocused(id);
