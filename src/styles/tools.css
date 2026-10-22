@@ -1114,51 +1114,84 @@ p.problem-error {
   padding: 6px 8px;
   border-bottom: 1px solid var(--line);
 }
+/*
+ * The surface is the only thing that scrolls. Inside it the page grows with its
+ * text (and ink), so lines, margin, text and ink can never drift apart. The
+ * textarea paints the paper itself, opaque: a transparent textarea scrolling
+ * over a background, inside the scaled board, left stale letters behind when
+ * text was deleted.
+ */
 .pad-surface {
   position: relative;
   flex: 1;
   min-height: 0;
   overflow: auto;
-  background-color: var(--pad-paper);
-  background-image: linear-gradient(to bottom, transparent 27px, var(--pad-line) 27px, var(--pad-line) 28px);
-  background-size: 100% 28px;
-  background-attachment: local;
-}
-.pad-surface::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 34px;
-  width: 1px;
-  background: color-mix(in srgb, var(--coral) 35%, transparent);
-  pointer-events: none;
+  overscroll-behavior: contain;
+  background: var(--pad-paper);
 }
 .pad-surface.mode-pen,
 .pad-surface.mode-eraser {
   touch-action: none;
   cursor: crosshair;
 }
-.pad-text {
-  display: block;
-  width: 100%;
+.pad-page {
+  position: relative;
+  display: grid;
   min-height: 100%;
-  height: 100%;
-  border: 0;
-  outline: 0;
-  resize: none;
-  background: transparent;
+}
+/* Laid out exactly like the textarea (and .note-thumb-text) so it wraps the same way. */
+.pad-text,
+.pad-page::after {
+  grid-area: 1 / 1;
   padding: 4px 12px 12px 44px;
   font-family: var(--font-math);
   font-size: 17px;
   line-height: 28px;
+  letter-spacing: normal;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: normal;
+  tab-size: 8;
+}
+/* An invisible copy of the text that sets the page's height. The space keeps a trailing empty line. */
+.pad-page::after {
+  content: attr(data-text) ' ';
+  visibility: hidden;
+  pointer-events: none;
+}
+.pad-text {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  align-self: stretch;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  resize: none;
+  overflow: hidden;
   color: var(--ink);
+  background-color: var(--pad-paper);
+  background-image:
+    linear-gradient(to right, transparent 34px, color-mix(in srgb, var(--coral) 35%, var(--pad-paper)) 34px, color-mix(in srgb, var(--coral) 35%, var(--pad-paper)) 35px, transparent 35px),
+    linear-gradient(to bottom, transparent 27px, var(--pad-line) 27px, var(--pad-line) 28px);
+  background-size:
+    100% 100%,
+    100% 28px;
+}
+/* Sketching and erasing go to the surface; the text can't be selected by a pen stroke. */
+.pad-surface.mode-pen .pad-text,
+.pad-surface.mode-eraser .pad-text {
+  pointer-events: none;
+  user-select: none;
 }
 .pad-ink {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+  overflow: visible;
   pointer-events: none;
 }
 .ink-swatches {
@@ -1182,7 +1215,8 @@ p.problem-error {
   border: 0;
   outline: 0;
   resize: none;
-  background: transparent;
+  /* The note's own paper, opaque: a transparent scrolling textarea could leave deleted letters behind. */
+  background: inherit;
   padding: 2px 14px 6px;
   font-size: 22px;
   line-height: 1.2;

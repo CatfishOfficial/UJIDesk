@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Eraser, FolderOpen, PenLine, Save, Type, Trash2 } from 'lucide-react';
-import { useWindowData, uid } from '../../state/store';
+import { useWindowData, useWorkspace, uid } from '../../state/store';
 import { useUI } from '../../state/ui';
 import { pageIsEmpty, samePage, saveNote, useNotes, type PadStroke } from '../../state/notes';
 import { INKS, freehandPath, strokeHit } from '../drawing/ink';
@@ -23,18 +23,44 @@ export function ScratchpadTool({ winId }: { winId: string }) {
   const [live, setLive] = useState<number[] | null>(null);
   const liveRef = useRef<number[] | null>(null);
   const surface = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLTextAreaElement>(null);
   const mode = data.mode ?? 'type';
   const color = data.color ?? 'graphite';
   const strokes = data.strokes ?? [];
+  const text = data.text ?? '';
 
+  // A fresh pad is ready to type in, without the browser scrolling anything to show it.
+  useEffect(() => {
+    if (mode === 'type' && !text) textRef.current?.focus({ preventScroll: true });
+  }, []);
+
+  // Finished strokes only change when one is added or erased, not on every pointer move.
+  const inked = useMemo(() => strokes.map((s) => ({ id: s.id, d: freehandPath(s.pts, 3.2), fill: INKS[s.color] ?? INKS.graphite })), [strokes]);
+  // The page runs at least a couple of lines past the lowest ink, so there's always room to keep sketching.
+  const inkBottom = useMemo(() => strokes.reduce((m, s) => s.pts.reduce((mm, v, i) => (i % 3 === 1 ? Math.max(mm, v) : mm), m), 0), [strokes]);
+
+  /** Pointer position on the page (which scrolls inside the surface). */
   const local = (e: React.PointerEvent) => {
     const r = surface.current!.getBoundingClientRect();
     return [e.clientX - r.left + surface.current!.scrollLeft, e.clientY - r.top + surface.current!.scrollTop];
   };
 
   const erase = (x: number, y: number) => {
-    const keep = strokes.filter((s) => !strokeHit(s.pts, x, y, 8));
-    if (keep.length !== strokes.length) update({ strokes: keep });
+    // Read the live strokes, not this render's: a quick sweep can hit two before React re-renders,
+    // and filtering a stale list brought the first one back.
+    const now = (useWorkspace.getState().windows[winId]?.data.strokes as PadStroke[] | undefined) ?? [];
+    const keep = now.filter((s) => !strokeHit(s.pts, x, y, 8));
+    if (keep.length !== now.length) update({ strokes: keep });
+  };
+
+  const endStroke = (keepIt: boolean) => {
+    const pts = liveRef.current;
+    liveRef.current = null;
+    setLive(null);
+    if (keepIt && pts && pts.length >= 3) {
+      const now = (useWorkspace.getState().windows[winId]?.data.strokes as PadStroke[] | undefined) ?? [];
+      update({ strokes: [...now, { id: uid('ps'), color, pts: pts.map((n) => Math.round(n * 10) / 10) }] });
+    }
   };
 
   const clear = () => {
@@ -43,7 +69,7 @@ export function ScratchpadTool({ winId }: { winId: string }) {
     toast('Page cleared.', { label: 'Undo', run: () => update(before) });
   };
 
-  const page = { text: data.text ?? '', strokes };
+  const page = { text, strokes };
   const saved = !!note && samePage(note, page);
   const save = () => {
     const el = surface.current;
@@ -118,6 +144,8 @@ export function ScratchpadTool({ winId }: { winId: string }) {
         className={`pad-surface mode-${mode}`}
         onPointerDown={(e) => {
           if (mode === 'type' || e.button !== 0) return;
+          // No text selection or focus change while sketching.
+          e.preventDefault();
           e.currentTarget.setPointerCapture(e.pointerId);
           const [x, y] = local(e);
           if (mode === 'eraser') return erase(x, y);
@@ -132,31 +160,34 @@ export function ScratchpadTool({ winId }: { winId: string }) {
           liveRef.current = [...liveRef.current, x, y, e.pressure || 0.5];
           setLive(liveRef.current);
         }}
-        onPointerUp={() => {
-          if (liveRef.current && liveRef.current.length >= 3) {
-            update({ strokes: [...strokes, { id: uid('ps'), color, pts: liveRef.current.map((n) => Math.round(n * 10) / 10) }] });
-          }
-          liveRef.current = null;
-          setLive(null);
-        }}
+        onPointerUp={() => endStroke(true)}
+        // A cancelled touch (palm, scroll, alert) used to leave its half-drawn line on the page for good.
+        onPointerCancel={() => endStroke(false)}
       >
-        <textarea
-          className="pad-text"
-          value={data.text ?? ''}
-          onChange={(e) => update({ text: e.target.value })}
-          placeholder="Work it out here…"
-          aria-label="Scratchpad text"
-          spellCheck={false}
-          readOnly={mode !== 'type'}
-          autoFocus={mode === 'type' && !data.text}
-          tabIndex={mode === 'type' ? 0 : -1}
-        />
-        <svg className="pad-ink" aria-hidden="true">
-          {strokes.map((s) => (
-            <path key={s.id} d={freehandPath(s.pts, 3.2)} fill={INKS[s.color] ?? INKS.graphite} />
-          ))}
-          {live && <path d={freehandPath(live, 3.2)} fill={INKS[color]} />}
-        </svg>
+        {/*
+          The page grows with what's on it and the surface scrolls it, so the ruled lines,
+          the margin, the text and the ink always move together. The textarea never scrolls
+          on its own: its height comes from a hidden copy of the text (.pad-page::after).
+        */}
+        <div className="pad-page" data-text={text} style={inkBottom ? { minHeight: `max(100%, ${Math.ceil(inkBottom) + 56}px)` } : undefined}>
+          <textarea
+            ref={textRef}
+            className="pad-text"
+            value={text}
+            onChange={(e) => update({ text: e.target.value })}
+            placeholder="Work it out here…"
+            aria-label="Scratchpad text"
+            spellCheck={false}
+            readOnly={mode !== 'type'}
+            tabIndex={mode === 'type' ? 0 : -1}
+          />
+          <svg className="pad-ink" aria-hidden="true">
+            {inked.map((s) => (
+              <path key={s.id} d={s.d} fill={s.fill} />
+            ))}
+            {live && <path d={freehandPath(live, 3.2)} fill={INKS[color]} />}
+          </svg>
+        </div>
       </div>
     </div>
   );

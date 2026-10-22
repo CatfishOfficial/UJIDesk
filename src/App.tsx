@@ -94,6 +94,11 @@ export default function App() {
     <div
       className={`workspace ${grid ? 'has-grid' : ''} ${arrange.grid ? 'snap-grid' : ''} ${drawMode ? 'is-drawing' : ''} ${compact ? 'is-compact' : ''} ${arranging ? 'is-arranging' : ''}`}
       style={{ '--snap': `${arrange.gridSize}px` } as CSSProperties}
+      // The board never scrolls (see .workspace); this catches browsers without overflow: clip.
+      onScroll={(e) => {
+        e.currentTarget.scrollTop = 0;
+        e.currentTarget.scrollLeft = 0;
+      }}
     >
       {/* Everything below scales together via --ui-scale: a transform (GPU-composited,
           doesn't force layout) rather than `zoom` (a layout property — forces the
